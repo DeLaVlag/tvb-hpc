@@ -15,7 +15,7 @@
 import itertools
 import numpy as np
 import pymbolic as pm
-from tvb_hpc import model, coupling, network, utils, scheme, transforms
+from dsl_cuda.tvb_hpc import model, coupling, network, utils, scheme, transforms
 
 LOG = utils.getLogger('tvb_hpc')
 

@@ -1,6 +1,6 @@
 
 from string import Template
-from tvb_hpc.model import G2DO
+from dsl_cuda.tvb_hpc import G2DO
 
 
 

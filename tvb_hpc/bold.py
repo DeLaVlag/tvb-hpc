@@ -18,7 +18,7 @@ Source for Balloon-Windkessel model of BOLD.
 
 """
 
-from tvb_hpc.model import BaseModel
+from dsl_cuda.tvb_hpc import BaseModel
 
 
 def _balloon_windkessel_constants():

@@ -15,7 +15,7 @@
 import numpy as np
 import loopy as lp
 import pymbolic as pm
-from tvb_hpc import model, coupling, network, utils, scheme
+from dsl_cuda.tvb_hpc import model, coupling, network, utils, scheme
 
 LOG = utils.getLogger('tvb_hpc')
 

@@ -31,7 +31,7 @@ import numpy as np
 import loopy as lp
 from loopy.target.c import CTarget, generate_header, CASTBuilder
 import cgen
-from tvb_hpc.utils import which
+from dsl_cuda.tvb_hpc import which
 
 
 LOG = logging.getLogger(__name__)

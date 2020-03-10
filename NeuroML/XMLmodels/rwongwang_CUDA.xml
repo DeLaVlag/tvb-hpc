@@ -1,0 +1,95 @@
+<Lems
+      xmlns="http://www.neuroml.org/lems/0.7.4"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.neuroml.org/lems/0.7.4 ../../LEMS/Schemas/LEMS/LEMS_v0.7.4.xsd"
+      description="A number of ComponentTypes for rate based/population models.
+                    Base type of any cell/population which has a (dimensionless) rate _R.
+                    Generic nonlinear 2-D (phase plane) oscillator.">
+
+    <ComponentType name="rWongWang"
+                   description="Rate based 2D oscillator for TVB">
+
+        <Constant name="w_plus" domain="lo=0.0, hi=2.0, step=0.01" default="1.4f" description="Excitatory population recurrence weight"/>
+        <Constant name="a_E" domain="lo=0., hi=500., step=1." default="310.0f" description="[n/C]. Excitatory population input gain parameter, chosen to fit numerical solutions."/>
+        <Constant name="b_E" domain="lo=0., hi=200., step=1." default="125.0f" description="[Hz]. Excitatory population input shift parameter chosen to fit numerical solutions."/>
+        <Constant name="d_E" domain="lo=-10.0, hi=10.0, step=0.01" default="0.154f" description="[s]. Excitatory population input scaling parameter chosen to fit numerical solutions."/>
+        <Constant name="a_I" domain="lo=0., hi=1000., step=1." default="615.0f" description="[n/C]. Inhibitory population input gain parameter, chosen to fit numerical solutions."/>
+        <Constant name="b_I" domain="lo=0.0, hi=200.0, step=1.0" default="177.0f" description="[Hz]. Inhibitory population input shift parameter chosen to fit numerical solutions."/>
+        <Constant name="d_I" domain="lo=0.0, hi=0.2, step=0.001" default="0.087f" description="[s]. Inhibitory population input scaling parameter chosen to fit numerical solutions."/>
+        <Constant name="gamma_E" domain="lo=0.0, hi=1.0/1000, step=0.01/1000" default="0.641f / 1000.0f" description="Excitatory population kinetic parameter"/>
+        <Constant name="tau_E" domain="lo=50., hi=150., step=1." default="100.0f" description="[ms]. Excitatory population NMDA decay time constant."/>
+        <Constant name="tau_I" domain="lo=5., hi=100., step=1.0" default="=10.0f" description="[ms]. Inhibitory population NMDA decay time constant."/>
+        <Constant name="I_0" domain="lo=0.0, hi=1.0, step=0.001" default="0.382f" description="[nA]. Effective external input"/>
+        <Constant name="w_E" domain="lo=0.0, hi=2.0, step=0.01" default="1.0f" description="Excitatory population external input scaling weight"/>
+        <Constant name="w_I" domain="lo=0.0, hi=1.0, step=0.01" default="0.7f" description="Inhibitory population external input scaling weight"/>
+        <Constant name="gamma_I" domain="lo=0.0, hi=2.0/1000, step=0.01/1000" default="1.0f / 1000.0f" description="Inhibitory population kinetic parameter"/>
+        <Constant name="min_d_E" domain="" default="-1.0f * d_E" description="Only in CUDA"/>
+        <Constant name="min_d_I" domain="" default="-1.0f * d_I" description="Only in CUDA"/>
+        <Constant name="imintau_E" domain="" default="-1.0f / tau_E" description="Only in CUDA"/>
+        <Constant name="imintau_I" domain="" default="-1.0f / tau_I" description="Only in CUDA"/>
+        <Constant name="w_E__I_0" domain="" default="w_E * I_0" description="Only in CUDA"/>
+        <Constant name="w_I__I_0" domain="" default="w_I * I_0" description="Only in CUDA"/>
+
+        <Constant name="J_N" domain="lo=0.001, hi=0.5, step=0.001" default="0.15" description="[nA] NMDA current"/>
+        <Constant name="J_I" domain="lo=0.001, hi=2.0, step=0.001" default="1.0" description="[nA] Local inhibitory current"/>
+        <Constant name="G" domain="lo=0.0, hi=10.0, step=0.01" default="2.0" description="Global coupling scaling"/>
+        <Constant name="lamda" domain="lo=0.0, hi=1.0, step=0.01" default="0.0" description="Inhibitory global coupling scaling"/>
+
+        <!-- Parameters will be assumed to be swept. sweep data will be matched by order of entry -->
+        <Parameter name="global_coupling" dimension="float" />
+        <Parameter name="global_speed" dimension="float" />
+
+        <Dynamics>
+            <StateVariable name="V" default="-2.0, 4.0" boundaries="V"/>
+            <StateVariable name="W" default="-6.0, 6.0"/>
+
+<!--            <DerivedVariable name="coupling_value" exposure="c_0" value="0.0" reduce="add"/>-->
+            <DerivedVariable name="nsig" exposure="float" value="sqrt(dt) * sqrt(2.0 * 1e-3)" reduce="add"/>
+            <DerivedVariable name="rec_speed_dt" exposure="float" value="1.0f / global_speed / (dt)" reduce="add"/>
+<!--            <DerivedVariable name="G" exposure="float" value="params" reduce="add"/>-->
+            <DerivedVariable name="lc_0" exposure="float" value="0.0"/>
+
+            <TimeDerivative name="tmp_I_E" expression="a_E * (w_E__I_0 + w_plus__J_NMDA * S_E + sum - JI*S_I) - b_E"/>
+            <TimeDerivative name="tmp_H_E" expression="tmp_I_E/(1.0-exp(min_d_E * tmp_I_E))"/>
+            <TimeDerivative name="tmp_I_I" expression="(a_I*((w_I__I_0+(J_NMDA * S_E))-S_I))-b_I"/>
+            <TimeDerivative name="tmp_H_I" expression="tmp_I_I/(1.0-exp(min_d_I*tmp_I_I))"/>
+
+            <TimeDerivative name="dV" expression="(imintau_E* S_E)+(tmp_H_E*(1-S_E)*gamma_E)"/>
+            <TimeDerivative name="dW" expression="(imintau_I* S_I)+(tmp_H_I*gamma_I)"/>
+        </Dynamics>
+
+        <!-- Exposures are used for observables, for the name enter variable to be observed (usually states)
+        and for dimension enter the reduction functionality-->
+        <Exposure name="V" choices="V" default="V"/>
+        <Exposure name="W" choices="W" default="W"/>
+
+    </ComponentType>
+
+    <ComponentType name="coupling_function">
+
+<!--        Added function for pre and post synaptic activity. Fixed the power being **, however no parse checks for it-->
+
+        <Constant name="a" domain="lo=0.0, hi=10., step=0.1" default="0.1" description="Rescales the connection strength."/>
+
+        <!-- variables for pre synaptic function-->
+        <Parameter name="V" dimension=''/>
+        <Parameter name="V_j" dimension=''/>
+
+    <Dynamics>
+        <DerivedVariable name="pre" expression="sin(V_j - V)" description = "pre synaptic function for coupling activity"/>
+        <DerivedVariable name="post" expression="a" description = "post synaptic function for coupling activity"/>
+    </Dynamics>
+
+        <!-- Handle local coupling result, full expression is c_0 *= 'value'. Name option is hardcoded -->
+        <DerivedParameter name="c_0" value="global_coupling * global_speed"/>
+
+    </ComponentType>
+
+    <ComponentType name="noise" description="on">
+
+    </ComponentType>
+
+</Lems>
+
+
+<!--Look at vector representation in XML LEMS-->

@@ -437,14 +437,14 @@ class TestWorkspaceCL(BaseTestCl, WorkspaceTestsMixIn):
 class TestMetrics(TestCase):
 
     def test_ocov(self):
-        from tvb_hpc.metric import OnlineCov
+        from dsl_cuda.tvb_hpc import OnlineCov
         ocov = OnlineCov()
         knl = ocov.kernel(NumbaTarget())
         _ = lp.generate_code(knl)
         self.assertTrue(_)
 
     def test_bcov(self):
-        from tvb_hpc.metric import BatchCov
+        from dsl_cuda.tvb_hpc import BatchCov
         bcov = BatchCov()
         knl = bcov.kernel(NumbaTarget())
         self.assertTrue(lp.generate_code(knl))
@@ -453,7 +453,7 @@ class TestMetrics(TestCase):
 class TestRmap(TestCase):
 
     def test_rmap_to_avg(self):
-        from tvb_hpc.network import RMapToAvg
+        from dsl_cuda.tvb_hpc import RMapToAvg
         knl = RMapToAvg().kernel(NumbaTarget())
         i = np.r_[:16].reshape((-1, 1))
         rmap = i // 4
@@ -463,7 +463,7 @@ class TestRmap(TestCase):
         np.testing.assert_allclose(roi[:, 0], node.reshape((4, 4)).sum(axis=1))
 
     def test_rmap_from_avg(self):
-        from tvb_hpc.network import RMapFromAvg
+        from dsl_cuda.tvb_hpc import RMapFromAvg
         knl = RMapFromAvg().kernel(NumbaTarget())
         i = np.r_[:16].reshape((-1, 1))
         rmap = i // 4

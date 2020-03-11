@@ -20,5 +20,5 @@
 #mpirun python ./parsweepa.py
 #mpirun python ./parsweepam.py
 #mpirun cuda-memcheck python ./tvbRegCudaNumba.py -b bencharg
-mpirun python ./tvbRegCudaNumba.py -b bencharg
+mpirun python ./tvbRegCudaNumba.py --bench bencharg --model Kuramoto
 

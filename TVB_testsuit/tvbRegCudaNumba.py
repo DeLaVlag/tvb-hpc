@@ -99,9 +99,9 @@ class TVB_test:
 				)
 		parser.add_argument('--node_threads', default=1, type=int)
 		parser.add_argument('--model',
-				choices=['rww', 'kuramoto'],
+				choices=['rww', 'Kuramoto', 'Epileptor'],
 				help="neural mass model to be used during the simulation",
-				default='kuramoto'
+				default='Kuramoto'
 				)
 		parser.add_argument('--lineinfo', default=True, action='store_true')
 
@@ -254,7 +254,7 @@ class TVB_test:
 		# Todo: fix this for cuda
 		# tvbhpc.check_results(n_nodes, n_work_items, tavg_data, weights, speeds, couplings, logger, args)
 
-		return tavg
+		return tavg_data
 
 	def startsim(self, pop, tmpld):
 
@@ -319,7 +319,7 @@ class TVB_test:
 
 		benchwhat = self.args.bench
 
-		self.args.filename = "{}{}{}{}".format(parent_dir, '/NeuroML/CUDAmodels/', pop.lower(), '.c')
+		self.args.filename = "{}{}{}{}".format(parent_dir, '/NeuroML/CUDAmodels/', self.args.model.lower(), '.c')
 
 		# locals()[benchwhat]()
 		logger.info('benchwhat: %s', benchwhat)
@@ -345,6 +345,8 @@ class TVB_test:
 		# 		print(pop)
 		# 		tavg1 = func(logger, pop)
 
+		logger.info('filename %s', self.args.filename)
+		logger.info('model %s', self.args.model)
 		tavg = func(logger, pop)
 		# print('tavg0', tavg0.shape, '\ntavg1', tavg1.shape)
 		# print('coercoef=', corrcoef(tavg0.ravel(), tavg1.ravel())[0, 1])

@@ -20,7 +20,7 @@ here = os.path.dirname(os.path.abspath(__file__))
 
 class CudaRun:
 
-	def make_kernel(self, source_file, warp_size, block_dim_x, pop, lineinfo=False, nh='nh'):
+	def make_kernel(self, source_file, warp_size, block_dim_x, args, lineinfo=False, nh='nh'):
 		with open(source_file, 'r') as fd:
 			source = fd.read()
 			source = source.replace('M_PI_F', '%ff' % (np.pi, ))
@@ -42,7 +42,7 @@ class CudaRun:
 			# if the func sig changes, just copy-paste the new name here..
 			# TODO parse verbose output of nvcc to get function name and make dynamic
 
-		mod_func = "{}{}{}".format('_Z8', pop, 'jjjjjffPfS_S_S_S_')
+		mod_func = "{}{}{}".format('_Z8', args.model.capitalize(), 'jjjjjffPfS_S_S_S_')
 
 		step_fn = network_module.get_function(mod_func)
 
@@ -91,7 +91,7 @@ class CudaRun:
 			block_dim_x=args.n_coupling,
 			# ext_options=preproccesor_defines,
 			# caching=args.caching,
-			pop=pop,
+			args=args,
 			lineinfo=args.lineinfo,
 			nh=buf_len,
 			# model=args.model,

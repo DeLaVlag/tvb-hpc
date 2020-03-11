@@ -32,46 +32,51 @@
         <!-- Parameters will be assumed to be swept. sweep data will be matched by order of entry -->
         <Parameter name="global_coupling" dimension="float" />
         <Parameter name="global_speed" dimension="float" />
-        <Parameter name="x0" dimension="float" />
+
+        <DerivedParameter name="rec_n" expression="1 / n_node" value="None"/>
+        <DerivedParameter name="rec_speed_dt" expression="1.0f / global_speed / (dt)" value="None"/>
+        <DerivedParameter name="nsig" expression="sqrt(dt) * sqrt(2.0 * 1e-5)" value="None"/>
 
         <Dynamics>
-            <StateVariable name="x1" default="-2., 1." boundaries=""/>
-            <StateVariable name="y1" default="-20., 2."/>
-            <StateVariable name="z" default="-2.0, 5.0" boundaries=""/>
-            <StateVariable name="x2" default="-2., 0."/>
-            <StateVariable name="y2" default="0., 2." boundaries=""/>
-            <StateVariable name="g" default="-1, 1."/>
+
+            <StateVariable name="x1" default="1" boundaries="-2.0, 1.0"/>
+            <StateVariable name="y1" default="1" boundaries="-20.0, 2.0"/>
+            <StateVariable name="z" default="1" boundaries="-2.0, 5.0"/>
+            <StateVariable name="x2" default="1" boundaries="-2.0, 0.0"/>
+            <StateVariable name="y2" default="1" boundaries="0.0, 2.0"/>
+            <StateVariable name="g" default="1" boundaries="-1.0, 1.0"/>
 
 <!--            <DerivedVariable name="coupling_value" exposure="c_0" value="0.0" reduce="add"/>-->
             <!-- Per state variable specifiable noise factor -->
-            <DerivedVariable name="sig_x1" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />
-            <DerivedVariable name="sig_y1" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />
-            <DerivedVariable name="sig_z" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />
-            <DerivedVariable name="sig_x2" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />
-            <DerivedVariable name="sig_y2" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />
-            <DerivedVariable name="sig_g" expression="0" />
+<!--            <DerivedVariable name="sig_x1" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />-->
+<!--            <DerivedVariable name="sig_y1" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />-->
+<!--            <DerivedVariable name="sig_z" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />-->
+<!--            <DerivedVariable name="sig_x2" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />-->
+<!--            <DerivedVariable name="sig_y2" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />-->
+<!--            <DerivedVariable name="sig_g" expression="0" />-->
 
             <DerivedVariable name="rec_speed_dt" expression="1.0f / global_speed / (dt)"/>
             <DerivedVariable name="lc_0" expression="0.0"/>
 
-            <!-- For conditionals use &lt(=); or &gt;(=) for less- or greater then (equal to)  -->
+            <!-- For conditionals use &lt(=); or &gt;(=) for less- or greater then (equal to). Cases are separated with ; -->
             <!-- Population 1 -->
-            <ConditionalDerivedVariable name="ydot0" condition="x1 &lt; 0.0" cases="-a * x1**2 + b * x1, slope - x2 + 0.6 * (z - 4)**2 "/>
-            <TimeDerivative name="dx1" expression="tt * (y1 - z + Iext + Kvf * c_pop1 + (if_ydot0 + else_ydot0) )"/>
-            <TimeDerivative name="dy1" expression="tt * (c - d * powf(x1, 2) - y1)"/>
+            <ConditionalDerivedVariable name="ydot0" condition="x1 &lt; 0.0" cases="-a * powf(x1, 2) + b * x1; slope - x2 + 0.6 * powf((z - 4),2)"/>
+            <!-- Use the statevariables for name in timederivatives. They will be added to the state variables -->
+            <TimeDerivative name="x1" expression="tt * (y1 - z + Iext + Kvf * c_pop1 + ydot0 )"/>
+            <TimeDerivative name="y1" expression="tt * (c - d * powf(x1, 2) - y1)"/>
 
             <!-- Energy -->
-            <ConditionalDerivedVariable name="ydot2" condition="z &lt; 0.0" cases="- 0.1 * (z**7), 0"/>
-            <ConditionalDerivedVariable name="h" condition="modification" cases="x0 + 3. / (1. + exp(-(x1 + 0.5) / 0.1)), 4 * (x1 - x0) + ydot2"/>
-            <TimeDerivative name="dz" expression="tt * (r * ((ifmod_h + elsemod_h)) - z + Ks * c_pop1))"/>
+            <ConditionalDerivedVariable name="ydot2" condition="z &lt; 0.0" cases="- 0.1 * (powf(z, 7)); 0"/>
+            <ConditionalDerivedVariable name="h" condition="modification" cases="x0 + 3. / (1. + exp(-(x1 + 0.5) / 0.1)); 4 * (x1 - x0) + ydot2"/>
+            <TimeDerivative name="z" expression="tt * (r * (h - z + Ks * c_pop1))"/>
 
             <!-- Population 2 -->
-            <TimeDerivative name="dx2" expression="tt * (-y2 + x2 - powf(x2, 3) + Iext2 + bb * g - 0.3 * (z - 3.5) + Kf * c_pop2)"/>
-            <ConditionalDerivedVariable name="ydot4" condition="x2 &lt; -0.25" cases="0.0, aa * (x2 + 0.25)"/>
-            <TimeDerivative name="dy2" expression="tt * (-y2 + else_ydot3) / tau"/>
+            <TimeDerivative name="x2" expression="tt * (-y2 + x2 - powf(x2, 3) + Iext2 + bb * g - 0.3 * (z - 3.5) + Kf * c_pop2)"/>
+            <ConditionalDerivedVariable name="ydot4" condition="x2 &lt; -0.25" cases="0.0; aa * (x2 + 0.25)"/>
+            <TimeDerivative name="y2" expression="tt * (-y2 + ydot4) / tau"/>
 
             <!-- Filter -->
-            <TimeDerivative name="dg" expression="tt * (-0.01 * (g - 0.1 * x1) )"/>
+            <TimeDerivative name="g" expression="tt * (-0.01 * (g - 0.1 * x1) )"/>
 
 
         </Dynamics>
@@ -91,15 +96,16 @@
         <Constant name="coupl_a" domain="lo=0.0, hi=10., step=0.1" default="1" description="Rescales the connection strength."/>
 
         <!-- variable for pre synaptic function, only 1 param is allowed (and should be sufficient))  -->
-        <Parameter name="x1_j" dimension=''/>
-        <Parameter name="x1" dimension=''/>
+        <!-- the dimension param indicates the nth statevariable to which the coupling function should apply  -->
+        <!-- param name appears in the pre or post coupling function.  -->
+        <Parameter name="x1_j" dimension='0'/>
 
     <Dynamics>
         <DerivedVariable name="pre" expression="sin(x1_j - x1)" description="pre synaptic function for coupling activity"/>
         <DerivedVariable name="post" expression="a" description="post synaptic = a * pre"/>
     </Dynamics>
         <!-- Handle local coupling result, full expression is c_0 *= 'value'. Name option is hardcoded -->
-        <DerivedParameter name="c_pop1" value="global_coupling"/>
+        <DerivedParameter name="c_pop1" expression="global_coupling * coupling" value="None"/>
 
     </ComponentType>
 
@@ -108,7 +114,7 @@
         <ComponentType name="coupling_function_pop2">
             
         <!-- Handle local coupling result, full expression is c_0 *= 'value'. Name option is hardcoded -->
-        <DerivedParameter name="c_pop2" value="g"/>
+        <DerivedParameter name="c_pop2" expression="g" value="None"/>
 
     </ComponentType>
 

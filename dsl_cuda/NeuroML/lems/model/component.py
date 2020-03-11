@@ -171,7 +171,7 @@ class DerivedParameter(LEMSBase):
     Store the specification of a derived parameter.
     """
 
-    def __init__(self, name, value, dimension=None, description=''):
+    def __init__(self, name, value, expression=None, description=''):
         """
         Constructor.
 
@@ -182,7 +182,7 @@ class DerivedParameter(LEMSBase):
         """ Name of the derived parameter.
         @type: str """
 
-        self.dimension = dimension
+        self.expression = expression
         """ Physical dimensions of the derived parameter.
         @type: str """
 

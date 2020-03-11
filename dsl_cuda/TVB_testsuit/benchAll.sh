@@ -12,13 +12,6 @@
 #BSUB -J testbench
 
 # Run the program
-#mpirun python ./cudanumba_hackathon.py
-#mpirun python ./numba_oscillator.py
-#mpirun python ./numba_kuramoto.py
-#mpirun python ./numba_kuratmoto_step-5.py
-#mpirun nvprof --print-gpu-trace python ./parsweepa.py
-#mpirun python ./parsweepa.py
-#mpirun python ./parsweepam.py
-#mpirun cuda-memcheck python ./tvbRegCudaNumba.py -b bencharg
+
 mpirun python ./tvbRegCudaNumba.py -b bencharg
 

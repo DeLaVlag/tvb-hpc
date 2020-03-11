@@ -8,7 +8,7 @@
                    description="Base type of any cell/population which has a (dimensionless) rate _R."
                    value="none">
 
-        <Constant name="omega" domain="lo=0.01, hi=200.0, step=0.1" default="1.0" description="sets the base line frequency for the Kuramoto oscillator in [rad/ms]"/>
+        <Constant name="omega" domain="" default="60.0 * 2.0 * M_PI_F / 1e3" description="sets the base line frequency for the Kuramoto oscillator in [rad/ms]"/>
 
         <!-- Parameters will be assumed to be swept. sweep data will be matched by order of entry -->
         <Parameter name="global_coupling" dimension='float'/>
@@ -24,7 +24,6 @@
 
             <DerivedVariable name="rec_n" expression="1.0f / n_node" />
             <DerivedVariable name="rec_speed_dt" expression="1.0f / global_speed / (dt)" />
-            <DerivedVariable name="omega" expression="60.0 * 2.0 * M_PI_F / 1e3" />
             <DerivedVariable name="nsig" expression="sqrt(dt) * sqrt(2.0 * 1e-5)" />
 
             <TimeDerivative name="dV" expression="omega * c_0"/>

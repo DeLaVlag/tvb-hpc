@@ -20,11 +20,11 @@ here = os.path.dirname(os.path.abspath(__file__))
 
 class CudaRun:
 
-	def make_kernel(self, source_file, warp_size, block_dim_x, lineinfo=False, nh='nh'):
+	def make_kernel(self, source_file, warp_size, block_dim_x, args, lineinfo=False, nh='nh'):
 		with open(source_file, 'r') as fd:
 			source = fd.read()
 			source = source.replace('M_PI_F', '%ff' % (np.pi, ))
-			opts = ['--ptxas-options=-v', ]# '-maxrregcount=32']# '-lineinfo']
+			opts = ["--ptxas-options=-v"]#, '-maxrregcount=32', '-lineinfo']
 			if lineinfo:
 				opts.append('-lineinfo')
 			opts.append('-DWARP_SIZE=%d' % (warp_size, ))
@@ -40,9 +40,13 @@ class CudaRun:
 			)
 			# no API to know the mangled function name ahead of time
 			# if the func sig changes, just copy-paste the new name here..
-			# TODO parse verbose output of nvcc to get function name
+			# TODO parse verbose output of nvcc to get function name and make dynamic
 
-		step_fn = network_module.get_function('_Z9integratejjjjjffPfS_S_S_S_')
+		mod_func = '_Z9EpileptorjjjjjffPfS_S_S_S_'
+		mod_func = '_Z8KuramotojjjjjffPfS_S_S_S_'
+		mod_func = "{}{}{}".format('_Z9', args.model.capitalize(), 'jjjjjffPfS_S_S_S_')
+
+		step_fn = network_module.get_function(mod_func)
 
 
 		return step_fn #}}}
@@ -66,8 +70,8 @@ class CudaRun:
 		return gpu_data#}}}
 
 
-	def run_simulation(self, weights, lengths, params_matrix, couplings, speeds, logger, args, n_nodes, n_work_items, n_params, nstep, n_inner_steps, 
-		buf_len, states, dt, min_speed):
+	def run_simulation(self, weights, lengths, params_matrix, couplings, speeds, logger, args, n_nodes, n_work_items, n_params, nstep, n_inner_steps,
+		buf_len, states, dt, min_speed, pop):
 
 		# setup data#{{{
 		data = { 'weights': weights, 'lengths': lengths, 'params': params_matrix.T }
@@ -89,6 +93,7 @@ class CudaRun:
 			block_dim_x=args.n_coupling,
 			# ext_options=preproccesor_defines,
 			# caching=args.caching,
+			args=args,
 			lineinfo=args.lineinfo,
 			nh=buf_len,
 			# model=args.model,

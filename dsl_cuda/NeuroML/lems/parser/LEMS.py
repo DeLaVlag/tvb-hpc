@@ -735,8 +735,8 @@ class LEMSFileParser(LEMSBase):
         else:
             self.raise_error('A derived parameter must have a name')
 
-        if 'dimension' in node.lattrib:
-            dimension = node.lattrib['dimension']
+        if 'expression' in node.lattrib:
+            expression = node.lattrib['expression']
         else:
             dimension = None
 
@@ -751,7 +751,7 @@ class LEMSFileParser(LEMSBase):
             select = None
 
         self.current_component_type.add_derived_parameter(DerivedParameter(name, value,
-                                                                    dimension, select))
+                                                                    expression, select))
 
     def parse_derived_variable(self, node):
         """

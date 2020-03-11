@@ -28,11 +28,13 @@ __device__ float wrap_it_PI(float x)
 \
 % for state_var in (dynamics.state_variables):
 % if (state_var.boundaries != "PI"):
-__device__ float wrap_it_${state_var.name}(float ${state_var.default})
+__device__ float wrap_it_${state_var.name}(float ${state_var.name})
 {
     int ${state_var.name}dim[] = {${state_var.boundaries}};
-    if (${state_var.name} < ${state_var.name}[0]) return ${state_var.name}dim[0];
-    else if (${state_var.name} > ${state_var.name}[1]) return ${state_var.name}dim[1];
+    if (${state_var.name} < ${state_var.name}dim[0]) ${state_var.name} = ${state_var.name}dim[0];
+    else if (${state_var.name} > ${state_var.name}dim[1]) ${state_var.name} = ${state_var.name}dim[1];
+
+    return ${state_var.name};
 }
 % endif /
 % endfor
@@ -76,13 +78,25 @@ __global__ void ${modelname}(
     %endfor /
 % endfor
 
-    ## derived variables
-    ## % for i, der_var in enumerate(dynamics.derived_variables):
-    ## const float ${der_var.name} = ${der_var.expression};
-    ## % endfor
+    // coupling parameters
+% for m in range(len(coupling)):
+    % for cc in (coupling[m].derived_parameters):
+    float ${cc.name} = 0.0;
+    %endfor /
+% endfor
 
-    curandState s;
-    curand_init(id * (blockDim.x * gridDim.x * gridDim.y), 0, 0, &s);
+    // derived parameters
+    % for par_var in derparams:
+    const float ${par_var.name} = ${par_var.expression};
+    % endfor
+
+    // conditional_derived variable declaration
+    % for cd in dynamics.conditional_derived_variables:
+    float ${cd.name} = 0.0;
+    % endfor
+
+    curandState crndst;
+    curand_init(id * (blockDim.x * gridDim.x * gridDim.y), 0, 0, &crndst);
 
     % for state_var in (dynamics.state_variables):
     double ${state_var.name} = 0.0;
@@ -144,10 +158,10 @@ __global__ void ${modelname}(
                 % endfor /
             } // j_node */
 
-            // rec_n is only used for the scaling over nodes for kuramoto, for python this scaling is included in the post_syn
+            // rec_n is used for the scaling over nodes
             % for m in range(len(coupling)):
                 % for cdp in (coupling[m].derived_parameters):
-            ${cdp.name} *= ${cdp.value};
+            ${cdp.name} = ${cdp.expression};
                 % endfor
             % endfor /
 
@@ -157,13 +171,13 @@ __global__ void ${modelname}(
             ## % endfor /
 
             % for con_der in dynamics.conditional_derived_variables:
-            if (${con_der.condition}):
+            if (${con_der.condition})
                 % for case in (con_der.cases):
                     % if (loop.first):
-                ${con_der.name} = ${case}
+                ${con_der.name} = ${case};
                     % elif (loop.last and not loop.first):
-            else:
-                ${con_der.name} = ${case}
+            else
+                ${con_der.name} = ${case};
                     %endif /
                 % endfor
             % endfor \
@@ -176,7 +190,7 @@ __global__ void ${modelname}(
             % if noisepresent:
             // Add noise (if noise components are present in model), integrate with stochastic forward euler and wrap it up
             % for ds, td in zip(dynamics.state_variables, dynamics.time_derivatives):
-            ${ds.name} += dt * (nsig * curand_normal(&s) + ${td.expression});
+            ${ds.name} += dt * (nsig * curand_normal2(&crndst).x + ${td.expression});
             % endfor /
             % else:
             % for ds, td in zip(dynamics.state_variables, dynamics.time_derivatives):

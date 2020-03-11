@@ -191,7 +191,7 @@ class ConditionalDerivedVariable(LEMSBase):
         """ Exposure name for the state variable.
         @type: str """
 
-        self.cases = list(cases.split(", "))
+        self.cases = list(cases.split("; "))
         """ List of cases related to this conditional derived variable.
         @type: list(lems.model.dynamics.Case) """
 

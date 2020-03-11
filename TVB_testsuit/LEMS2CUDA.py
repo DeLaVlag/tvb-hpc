@@ -17,7 +17,7 @@ model_filename = 'Epileptor'
 
 def default_lems_folder():
     here = os.path.dirname(os.path.abspath(__file__))
-    xmlpath = os.path.join(here, 'dsl_cuda', 'NeuroML', 'XMLmodels')
+    xmlpath = os.path.join(here, 'NeuroML', 'XMLmodels')
     return xmlpath
 
 def lems_file(model_name, folder=None):
@@ -91,7 +91,6 @@ def render_model(model_name, template=None):
                             const=modellist.constants,
                             dynamics=modellist.dynamics,
                             params=modellist.parameters,
-                            derparams=modellist.derived_parameters,
                             coupling=couplinglist,
                             noisepresent=noisepresent,
                             expolist=expolist

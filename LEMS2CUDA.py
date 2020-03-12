@@ -10,9 +10,9 @@ from lems.model.model import Model
 
 # model file location
 # model_filename = 'Oscillator'
-# model_filename = 'Kuramoto'
-# model_filename = 'rWongWang'
-model_filename = 'Epileptor'
+model_filename = 'Kuramoto'
+# model_filename = 'Rwongwang'
+# model_filename = 'Epileptor'
 
 
 def default_lems_folder():

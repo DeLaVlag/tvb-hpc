@@ -105,7 +105,7 @@ class TVB_test:
 				)
 		parser.add_argument('--lineinfo', default=True, action='store_true')
 
-		parser.add_argument('--filename', default="kuramoto.c", type=str, help="Filename to use as GPU kernel definition")
+		parser.add_argument('--filename', default="kuramoto_network.c", type=str, help="Filename to use as GPU kernel definition")
 		# parser.add_argument("bench", default="all", nargs='*', choices=["noop", "scatter", "gather", "all"], help="Which sub-set of kernel to run")
 
 		parser.add_argument('-b', '--bench', default="regular", type=str, help="What to bench: regular, numba, cuda")

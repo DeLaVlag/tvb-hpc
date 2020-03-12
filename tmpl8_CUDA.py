@@ -85,15 +85,26 @@ __global__ void ${modelname}(
     %endfor /
 % endfor
 
+    % if derparams:
     // derived parameters
     % for par_var in derparams:
     const float ${par_var.name} = ${par_var.expression};
     % endfor
+    %endif
 
+    % if dynamics.derived_variables:
+    // the dynamic derived variables declarations
+    % for i, dv in enumerate(dynamics.derived_variables):
+    float ${dv.name} = 0.0;
+    % endfor /
+    % endif
+
+    % if dynamics.conditional_derived_variables:
     // conditional_derived variable declaration
     % for cd in dynamics.conditional_derived_variables:
     float ${cd.name} = 0.0;
     % endfor
+    % endif
 
     curandState crndst;
     curand_init(id * (blockDim.x * gridDim.x * gridDim.y), 0, 0, &crndst);
@@ -165,13 +176,16 @@ __global__ void ${modelname}(
                 % endfor
             % endfor /
 
-            // The conditional variables
-            ## % for i, con_der in enumerate(dynamics.conditional_derived_variables):
-            ## ${con_der.name} = ${con_der.dimension};
-            ## % endfor /
+            % if dynamics.derived_variables:
+            // the dynamic derived variables
+            % for i, dv in enumerate(dynamics.derived_variables):
+            ${dv.name} = ${dv.expression};
+            % endfor /
+            % endif
 
             % for con_der in dynamics.conditional_derived_variables:
             if (${con_der.condition})
+                // The conditional variables
                 % for case in (con_der.cases):
                     % if (loop.first):
                 ${con_der.name} = ${case};
@@ -190,11 +204,11 @@ __global__ void ${modelname}(
             % if noisepresent:
             // Add noise (if noise components are present in model), integrate with stochastic forward euler and wrap it up
             % for ds, td in zip(dynamics.state_variables, dynamics.time_derivatives):
-            ${ds.name} += dt * (nsig * curand_normal2(&crndst).x + ${td.expression});
+            ${ds.name} += dt * (nsig * curand_normal2(&crndst).x + ${td.name});
             % endfor /
             % else:
             % for ds, td in zip(dynamics.state_variables, dynamics.time_derivatives):
-            ${ds.name} += dt * ${td.expression});
+            ${ds.name} += dt * ${td.name});
             % endfor /
             % endif
 

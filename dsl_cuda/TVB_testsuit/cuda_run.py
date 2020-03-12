@@ -42,12 +42,13 @@ class CudaRun:
 			# if the func sig changes, just copy-paste the new name here..
 			# TODO parse verbose output of nvcc to get function name and make dynamic
 
-		mod_func = '_Z9EpileptorjjjjjffPfS_S_S_S_'
-		mod_func = '_Z8KuramotojjjjjffPfS_S_S_S_'
-		mod_func = "{}{}{}".format('_Z9', args.model.capitalize(), 'jjjjjffPfS_S_S_S_')
+		# mod_func = '_Z9EpileptorjjjjjffPfS_S_S_S_'
+		# mod_func = '_Z8KuramotojjjjjffPfS_S_S_S_'
+		# mod_func = '_Z9RwongwangjjjjjffPfS_S_S_S_'
+		# mod_func = '_Z12KuratmotorefjjjjjffPfS_S_S_S_'
+		mod_func = "{}{}{}{}".format('_Z', len(args.model), args.model.capitalize(), 'jjjjjffPfS_S_S_S_')
 
 		step_fn = network_module.get_function(mod_func)
-
 
 		return step_fn #}}}
 
@@ -106,6 +107,7 @@ class CudaRun:
 		events = [drv.Event() for i in range(32)]
 		tavg_unpinned = []
 		tavg = drv.pagelocked_zeros(data['tavg'].shape, dtype=np.float32)
+		logger.info('data[tavg].shape %s', data['tavg'].shape)
 		#}}}
 
 		# adjust gridDim to keep block size <= 1024 {{{
@@ -143,7 +145,7 @@ class CudaRun:
 			# event.record(streams[i % 32])
 			tavg_unpinned.append(tavg.copy())
 			drv.memcpy_dtoh(
-				tavg, 
+				tavg,
 				gpu_data['tavg'].ptr)
 
 		logger.info('kernel finish..')

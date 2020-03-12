@@ -21,11 +21,9 @@ import os, sys, inspect
 
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parent_dir = os.path.dirname(current_dir)
-print(parent_dir)
 sys.path.insert(0, parent_dir)
 
 sys.path.append("{}{}".format(parent_dir, '/NeuroML/'))
-print(sys.path)
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -88,26 +86,27 @@ class TVB_test:
 		parser.add_argument('-t', '--test', help='check results', action='store_true')
 		parser.add_argument('-n', '--n_time', help='number of time steps to do (default 400)', type=int, default=400)
 		parser.add_argument('-v', '--verbose', help='increase logging verbosity', action='store_true', default='-v')
-		parser.add_argument('-p', '--no_progress_bar', help='suppress progress bar', action='store_false')
-		parser.add_argument('--caching',
-							choices=['none', 'shared', 'shared_sync', 'shuffle'],
-							help="caching strategy for j_node loop (default shuffle)",
-							default='none'
-							)
-		parser.add_argument('--dataset',
-							choices=['hcp', 'sep'],
-							help="dataset to use (hcp: 100 nodes, sep: 645 nodes",
-							default='hcp'
-							)
+		# parser.add_argument('-p', '--no_progress_bar', help='suppress progress bar', action='store_false')
+		# parser.add_argument('--caching',
+		# 					choices=['none', 'shared', 'shared_sync', 'shuffle'],
+		# 					help="caching strategy for j_node loop (default shuffle)",
+		# 					default='none'
+		# 					)
+		# parser.add_argument('--dataset',
+		# 					choices=['hcp', 'sep'],
+		# 					help="dataset to use (hcp: 100 nodes, sep: 645 nodes",
+		# 					default='hcp'
+		# 					)
 		parser.add_argument('--node_threads', default=1, type=int)
 		parser.add_argument('--model',
-							choices=['rww', 'Kuramoto', 'Epileptor'],
+							choices=['Rwongwang', 'Kuramoto', 'Epileptor', 'Oscillator', \
+									 'Oscillatorref', 'Kuramotoref', 'Rwongwangref'],
 							help="neural mass model to be used during the simulation",
 							default='Kuramoto'
 							)
 		parser.add_argument('--lineinfo', default=True, action='store_true')
 
-		parser.add_argument('--filename', default="kuramoto.c", type=str,
+		parser.add_argument('--filename', default="kuramoto_network.c", type=str,
 							help="Filename to use as GPU kernel definition")
 		# parser.add_argument("bench", default="all", nargs='*', choices=["noop", "scatter", "gather", "all"], help="Which sub-set of kernel to run")
 
@@ -180,24 +179,26 @@ class TVB_test:
 		win_size = args.n_time  # 4s? orig 200 # 2s?
 		win_tavg = tavg.reshape((-1, win_size) + tavg.shape[1:])
 		err = np.zeros((len(win_tavg), n_work_items))
+		logger.info('err.shape %s', err.shape)
 		# TODO do cov/corr in kernel
 		for i, tavg_ in enumerate(win_tavg):
 			for j in range(n_work_items):
 				fc = np.corrcoef(tavg_[:, :, j].T)
 				# err[i, j] = ((fc[r, c] - weights[r, c])**2).sum()   weights is 1 dim array
-				err[i, j] = ((fc[r, c] - weights[r]) ** 2).sum()
+				# logger.info('fc[r, c].shape %s, weights[r].shape %s', fc[r, c].shape, weights[r].shape)
+				err[i, j] = ((fc[r, c] - weights[r, c]) ** 2).sum()
 		# look at 2nd 2s window (converges quickly)
 		err_ = err[-1].reshape((speeds.size, couplings.size))
 		# change on fc-sc metric wrt. speed & coupling strength
 		derr_speed = np.diff(err_.mean(axis=1)).sum()
 		derr_coupl = np.diff(err_.mean(axis=0)).sum()
 		logger.info('derr_speed=%f, derr_coupl=%f', derr_speed, derr_coupl)
-		if args.dataset == 'hcp':
-			assert derr_speed > 5.0
-			assert derr_coupl < -60.0
-		if args.dataset == 'sep':
-			assert derr_speed > 5e4
-			assert derr_coupl > 1e4
+		# if args.dataset == 'hcp':
+		assert derr_speed > 350.0
+		assert derr_coupl < -500.0
+		# if args.dataset == 'sep':
+		# 	assert derr_speed > 5e4
+		# 	assert derr_coupl > 1e4
 
 		logger.info('result OK')
 
@@ -259,7 +260,7 @@ class TVB_test:
 		# logger.info('tavg_data %f', tavg_data)
 
 		# Todo: fix this for cuda
-		# tvbhpc.check_results(n_nodes, n_work_items, tavg_data, weights, speeds, couplings, logger, args)
+		self.check_results(self.n_nodes, self.n_work_items, tavg_data, self.weights, self.speeds, self.couplings, logger, self.args)
 
 		return tavg_data
 
@@ -282,7 +283,7 @@ class TVB_test:
 		# TODO buf_len per speed/block
 		logger.info('dt %f', self.dt)
 		logger.info('nstep %d', self.nstep)
-		logger.info('caching strategy %r', self.args.caching)
+		# logger.info('caching strategy %r', self.args.caching)
 		logger.info('n_inner_steps %f', self.n_inner_steps)
 		if self.args.test and self.args.n_time % 200:
 			logger.warning('rerun w/ a multiple of 200 time steps (-n 200, -n 400, etc) for testing')  # }}}
@@ -327,6 +328,20 @@ class TVB_test:
 		benchwhat = self.args.bench
 
 		self.args.filename = "{}{}{}{}".format(parent_dir, '/NeuroML/CUDAmodels/', self.args.model.lower(), '.c')
+		logger.info('modellow %s', self.args.model.lower())
+		logger.info('modellow %s', 'wongwang' in self.args.model.lower())
+
+		if ('kuramoto' in self.args.model.lower()):
+			self.states = 1
+		elif 'oscillator' in self.args.model.lower():
+			self.states = 2
+		elif 'wongwang' in self.args.model.lower():
+			self.states = 2
+		elif 'montbrio' in self.args.model.lower():
+			self.states = 2
+		elif 'epileptor' in self.args.model.lower():
+			self.states = 6
+		logger.info('number of states %d', self.states)
 
 		# locals()[benchwhat]()
 		logger.info('benchwhat: %s', benchwhat)

@@ -120,7 +120,7 @@ __global__ void Epileptor(
     const float modification = 1.0;
 
     // coupling constants, coupling itself is hardcoded in kernel
-    const float coupl_a = 1;
+    const float c_a = 1;
 
     // coupling parameters
     float c_pop1 = 0.0;
@@ -183,7 +183,7 @@ __global__ void Epileptor(
                 float x1_j = state(((t - dij + nh) % nh), j_node + 0 * n_node);
 
                 // Sum it all together using the coupling function. Kuramoto coupling: (postsyn * presyn) == ((a) * (sin(xj - xi))) 
-                coupling += a * sin(x1_j - x1);
+                coupling += c_a * sin(x1_j - x1);
 
             } // j_node */
 
@@ -244,9 +244,6 @@ __global__ void Epileptor(
             // Update the observable only for the last timestep
             if (t == (i_step + n_step - 1)){
                 tavg(i_node + 0 * n_node) = x1;
-                tavg(i_node + 1 * n_node) = x2;
-                tavg(i_node + 2 * n_node) = z;
-                tavg(i_node + 3 * n_node) = -x1 + x2;
             }
 
             // sync across warps executing nodes for single sim, before going on to next time step

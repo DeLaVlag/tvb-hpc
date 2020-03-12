@@ -39,24 +39,12 @@
 
         <Dynamics>
 
-            <StateVariable name="x1" default="1" boundaries="-2.0, 1.0"/>
-            <StateVariable name="y1" default="1" boundaries="-20.0, 2.0"/>
-            <StateVariable name="z" default="1" boundaries="-2.0, 5.0"/>
-            <StateVariable name="x2" default="1" boundaries="-2.0, 0.0"/>
-            <StateVariable name="y2" default="1" boundaries="0.0, 2.0"/>
-            <StateVariable name="g" default="1" boundaries="-1.0, 1.0"/>
-
-<!--            <DerivedVariable name="coupling_value" exposure="c_0" value="0.0" reduce="add"/>-->
-            <!-- Per state variable specifiable noise factor -->
-<!--            <DerivedVariable name="sig_x1" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />-->
-<!--            <DerivedVariable name="sig_y1" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />-->
-<!--            <DerivedVariable name="sig_z" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />-->
-<!--            <DerivedVariable name="sig_x2" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />-->
-<!--            <DerivedVariable name="sig_y2" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" />-->
-<!--            <DerivedVariable name="sig_g" expression="0" />-->
-
-            <DerivedVariable name="rec_speed_dt" expression="1.0f / global_speed / (dt)"/>
-            <DerivedVariable name="lc_0" expression="0.0"/>
+            <StateVariable name="x1" default="" boundaries="-2.0, 1.0"/>
+            <StateVariable name="y1" default="" boundaries="-20.0, 2.0"/>
+            <StateVariable name="z" default="" boundaries="-2.0, 5.0"/>
+            <StateVariable name="x2" default="" boundaries="-2.0, 0.0"/>
+            <StateVariable name="y2" default="" boundaries="0.0, 2.0"/>
+            <StateVariable name="g" default="" boundaries="-1.0, 1.0"/>
 
             <!-- For conditionals use &lt(=); or &gt;(=) for less- or greater then (equal to). Cases are separated with ; -->
             <!-- Population 1 -->
@@ -83,9 +71,9 @@
 
         <!-- Exposures are used for observables. For dimension enter the reduction functionality. Name field is not used-->
         <Exposure name="o_x1" choices="x1" default="x1"/>
-        <Exposure name="o_x2" choices="x2" default="x2"/>
-        <Exposure name="o_z" choices="z" default="z"/>
-        <Exposure name="o_-x1+x2" choices="-x1 + x2" default="x1"/>
+<!--        <Exposure name="o_x2" choices="x2" default="x2"/>-->
+<!--        <Exposure name="o_z" choices="z" default="z"/>-->
+<!--        <Exposure name="o_-x1+x2" choices="-x1 + x2" default="x1"/>-->
 
     </ComponentType>
 
@@ -93,7 +81,7 @@
 
 <!--        Added function for pre and post synaptic activity. Fixed the power being **, however no parse checks for it-->
 
-        <Constant name="coupl_a" domain="lo=0.0, hi=10., step=0.1" default="1" description="Rescales the connection strength."/>
+        <Constant name="c_a" domain="lo=0.0, hi=10., step=0.1" default="1" description="Rescales the connection strength."/>
 
         <!-- variable for pre synaptic function, only 1 param is allowed (and should be sufficient))  -->
         <!-- the dimension param indicates the nth statevariable to which the coupling function should apply  -->
@@ -102,7 +90,7 @@
 
     <Dynamics>
         <DerivedVariable name="pre" expression="sin(x1_j - x1)" description="pre synaptic function for coupling activity"/>
-        <DerivedVariable name="post" expression="a" description="post synaptic = a * pre"/>
+        <DerivedVariable name="post" expression="c_a" description="post synaptic = a * pre"/>
     </Dynamics>
         <!-- Handle local coupling result, full expression is c_0 *= 'value'. Name option is hardcoded -->
         <DerivedParameter name="c_pop1" expression="global_coupling * coupling" value="None"/>

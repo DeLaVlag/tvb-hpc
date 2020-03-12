@@ -738,7 +738,7 @@ class LEMSFileParser(LEMSBase):
         if 'expression' in node.lattrib:
             expression = node.lattrib['expression']
         else:
-            dimension = None
+            expression = None
 
         if 'value' in node.lattrib:
             value = node.lattrib['value']

@@ -3,7 +3,9 @@ import math as m
 import numpy as _lpy_np
 import numba.cuda as _lpy_ncu
 from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
-from dsl_cuda.tvb_hpc import utils
+import numba as _lpy_numba
+from tvb_hpc import utils, network
+from typing import List
 
 # from tvb.simulator.lab import *
 

@@ -2,8 +2,7 @@
 
 rm error.er 
 rm output.out
-sed -e 's/bencharg/$1/;s/mdlrun/$2/' benchAll.sh > sed.txt
-sed -e 's/bencharg/$1/' -e 's/mdlrun/$2/' benchAll.sh | bsub
+sed "s/bencharg/$1/" benchAll.sh | bsub
 #sleep 2
 
 while [ ! -f ./error.er ] ;

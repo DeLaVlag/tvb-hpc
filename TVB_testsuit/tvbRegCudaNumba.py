@@ -17,14 +17,13 @@ import logging
 import itertools
 import argparse
 
-import os,sys,inspect
+import os, sys, inspect
+
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parent_dir = os.path.dirname(current_dir)
-print(parent_dir)
 sys.path.insert(0, parent_dir)
 
 sys.path.append("{}{}".format(parent_dir, '/NeuroML/'))
-print(sys.path)
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -37,6 +36,7 @@ np.set_printoptions(threshold=sys.maxsize)
 
 
 rgn.seed(79)
+
 
 class TVB_test:
 
@@ -54,7 +54,7 @@ class TVB_test:
 		self.n_nodes = self.weights.shape[0]
 		self.args = self.parse_args()
 		self.dt, self.tavg_period = 1.0, 10.0
-		self.nstep = self.args.n_time # 4s
+		self.nstep = self.args.n_time  # 4s
 		self.n_inner_steps = int(self.tavg_period / self.dt)
 		self.nc = self.args.n_coupling
 		self.ns = self.args.n_speed
@@ -63,7 +63,7 @@ class TVB_test:
 		self.n_work_items, self.n_params = self.params.shape
 		self.min_speed = self.speeds.min()
 		self.buf_len_ = ((self.lengths / self.min_speed / self.dt).astype('i').max() + 1)
-		self.buf_len = 2**np.argwhere(2**np.r_[:30] > self.buf_len_)[0][0]  # use next power of 2
+		self.buf_len = 2 ** np.argwhere(2 ** np.r_[:30] > self.buf_len_)[0][0]  # use next power of 2
 		self.states = 1
 
 	def tvb_connectivity(self, speed, global_coupling, dt=0.1):
@@ -72,40 +72,42 @@ class TVB_test:
 		white_matter.speed = np.array([speed])
 		white_matter_coupling = coupling.Linear(a=global_coupling)
 		return white_matter, white_matter_coupling
-	
+
 	def tvb_python_model(self):
 		populations = models.Kuramoto()
 		populations.configure()
 		populations.omega = np.array([self.omega])
 		return populations
 
-	def parse_args(self):#{{{
+	def parse_args(self):  # {{{
 		parser = argparse.ArgumentParser(description='Run parameter sweep.')
 		parser.add_argument('-c', '--n_coupling', help='num grid points for coupling parameter', default=32, type=int)
 		parser.add_argument('-s', '--n_speed', help='num grid points for speed parameter', default=32, type=int)
 		parser.add_argument('-t', '--test', help='check results', action='store_true')
 		parser.add_argument('-n', '--n_time', help='number of time steps to do (default 400)', type=int, default=400)
-		parser.add_argument('-v', '--verbose', help='increase logging verbosity', action='store_true')
-		parser.add_argument('-p', '--no_progress_bar', help='suppress progress bar', action='store_false')
-		parser.add_argument('--caching',
-				choices=['none', 'shared', 'shared_sync', 'shuffle'],
-				help="caching strategy for j_node loop (default shuffle)",
-				default='none'
-				)
-		parser.add_argument('--dataset',
-				choices=['hcp', 'sep'],
-				help="dataset to use (hcp: 100 nodes, sep: 645 nodes",
-				default='hcp'
-				)
+		parser.add_argument('-v', '--verbose', help='increase logging verbosity', action='store_true', default='-v')
+		# parser.add_argument('-p', '--no_progress_bar', help='suppress progress bar', action='store_false')
+		# parser.add_argument('--caching',
+		# 					choices=['none', 'shared', 'shared_sync', 'shuffle'],
+		# 					help="caching strategy for j_node loop (default shuffle)",
+		# 					default='none'
+		# 					)
+		# parser.add_argument('--dataset',
+		# 					choices=['hcp', 'sep'],
+		# 					help="dataset to use (hcp: 100 nodes, sep: 645 nodes",
+		# 					default='hcp'
+		# 					)
 		parser.add_argument('--node_threads', default=1, type=int)
 		parser.add_argument('--model',
-				choices=['rww', 'Kuramoto', 'Epileptor'],
-				help="neural mass model to be used during the simulation",
-				default='Kuramoto'
-				)
+							choices=['Rwongwang', 'Kuramoto', 'Epileptor', 'Oscillator', \
+									 'Oscillatorref', 'Kuramotoref', 'Rwongwangref'],
+							help="neural mass model to be used during the simulation",
+							default='Kuramoto'
+							)
 		parser.add_argument('--lineinfo', default=True, action='store_true')
 
-		parser.add_argument('--filename', default="kuramoto_network.c", type=str, help="Filename to use as GPU kernel definition")
+		parser.add_argument('--filename', default="kuramoto_network.c", type=str,
+							help="Filename to use as GPU kernel definition")
 		# parser.add_argument("bench", default="all", nargs='*', choices=["noop", "scatter", "gather", "all"], help="Which sub-set of kernel to run")
 
 		parser.add_argument('-b', '--bench', default="regular", type=str, help="What to bench: regular, numba, cuda")
@@ -130,26 +132,26 @@ class TVB_test:
 			weights = npz['weights'].astype(np.float32)
 			lengths = npz['lengths'].astype(np.float32)
 		else:
-			raise ValueError('unknown dataset name %r' % (dataset, ))
+			raise ValueError('unknown dataset name %r' % (dataset,))
 		# weights /= {'N':2e3, 'Nfa': 1e3, 'FA': 1.0}[mattype]
 		weights /= weights.max()
 		assert (weights <= 1.0).all()
 		return weights, lengths
 
-	def expand_params(self, couplings, speeds):#{{{
-		# the params array is transformed into a 2d array 
+	def expand_params(self, couplings, speeds):  # {{{
+		# the params array is transformed into a 2d array
 		# by first creating tuples of (speed, coup) and arrayfying then
 		# pycuda (check) threats them as flattenened arrays but numba needs 2d indexing
 		params = itertools.product(speeds, couplings)
 		params = np.array([vals for vals in params], np.float32)
-		return params#}}}
+		return params  # }}}
 
-	def setup_params(self, nc, ns):#{{{
+	def setup_params(self, nc, ns):  # {{{
 		# the correctness checks at the end of the simulation
 		# are matched to these parameter values, for the moment
 		couplings = np.logspace(1.6, 3.0, nc)
 		speeds = np.logspace(0.0, 2.0, ns)
-		return couplings, speeds#}}}
+		return couplings, speeds  # }}}
 
 	def calculate_FC(self, timeseries):
 		return corrcoef(timeseries.T)
@@ -164,7 +166,7 @@ class TVB_test:
 					yticklabels='', ax=ax[0],
 					cmap='coolwarm')
 		sns.heatmap(SC / SC.max(), xticklabels='', yticklabels='',
-					ax=ax[1], cmap='coolwarm', vmin=0, vmax=1) #
+					ax=ax[1], cmap='coolwarm', vmin=0, vmax=1)  #
 		r = self.correlation_SC_FC(SC, FC)
 		ax[0].set_title('simulated FC. \n(SC-FC r = %1.4s )' % r)
 		ax[1].set_title('SC')
@@ -174,27 +176,29 @@ class TVB_test:
 	# Todo: check if this function work. derr_speed > 500 and derr_coupl < -1500 evaluate to false for pyCuda runs
 	def check_results(self, n_nodes, n_work_items, tavg, weights, speeds, couplings, logger, args):
 		r, c = np.triu_indices(n_nodes, 1)
-		win_size = args.n_time # 4s? orig 200 # 2s?
+		win_size = args.n_time  # 4s? orig 200 # 2s?
 		win_tavg = tavg.reshape((-1, win_size) + tavg.shape[1:])
 		err = np.zeros((len(win_tavg), n_work_items))
+		logger.info('err.shape %s', err.shape)
 		# TODO do cov/corr in kernel
 		for i, tavg_ in enumerate(win_tavg):
 			for j in range(n_work_items):
 				fc = np.corrcoef(tavg_[:, :, j].T)
 				# err[i, j] = ((fc[r, c] - weights[r, c])**2).sum()   weights is 1 dim array
-				err[i, j] = ((fc[r, c] - weights[r])**2).sum()
+				# logger.info('fc[r, c].shape %s, weights[r].shape %s', fc[r, c].shape, weights[r].shape)
+				err[i, j] = ((fc[r, c] - weights[r, c]) ** 2).sum()
 		# look at 2nd 2s window (converges quickly)
 		err_ = err[-1].reshape((speeds.size, couplings.size))
 		# change on fc-sc metric wrt. speed & coupling strength
 		derr_speed = np.diff(err_.mean(axis=1)).sum()
 		derr_coupl = np.diff(err_.mean(axis=0)).sum()
 		logger.info('derr_speed=%f, derr_coupl=%f', derr_speed, derr_coupl)
-		if args.dataset == 'hcp':
-			assert derr_speed > 5.0
-			assert derr_coupl < -60.0
-		if args.dataset == 'sep':
-			assert derr_speed > 5e4
-			assert derr_coupl > 1e4
+		# if args.dataset == 'hcp':
+		assert derr_speed > 350.0
+		assert derr_coupl < -500.0
+		# if args.dataset == 'sep':
+		# 	assert derr_speed > 5e4
+		# 	assert derr_coupl > 1e4
 
 		logger.info('result OK')
 
@@ -206,10 +210,11 @@ class TVB_test:
 		# Initialize Monitors
 		monitorsen = (monitors.TemporalAverage(period=self.period))
 		# Initialize Simulator
-		sim = simulator.Simulator(model=model, connectivity=self.connectivity, coupling=self.coupling, integrator=self.integrator,
-									  monitors=[monitorsen])
+		sim = simulator.Simulator(model=model, connectivity=self.connectivity, coupling=self.coupling,
+								  integrator=self.integrator,
+								  monitors=[monitorsen])
 		sim.configure()
-		(_,tavg_data) = sim.run(simulation_length=self.sim_length)[0]
+		(_, tavg_data) = sim.run(simulation_length=self.sim_length)[0]
 		# print(np.squeeze(np.array(tavg_data)).shape)
 		#
 		# FC = self.calculate_FC(np.squeeze(np.array(tavg_data)))
@@ -222,25 +227,28 @@ class TVB_test:
 		from numbacuda_run import NumbaCudaRun
 		numbacuda = NumbaCudaRun()
 		trace = numbacuda.run_simulation(dt)
-		#
-		# (numbacuda_FC, python_r) = tvbhpc.simulate_numbacuda()
-		# print(numbacuda_FC)
-		# tavg_data = np.transpose(trace, (1, 2, 0))
-		# tvbhpc.check_results(n_nodes, n_work_items, tavg_data, weights, speeds, couplings, logger, args)
+
+	#
+	# (numbacuda_FC, python_r) = tvbhpc.simulate_numbacuda()
+	# print(numbacuda_FC)
+	# tavg_data = np.transpose(trace, (1, 2, 0))
+	# tvbhpc.check_results(n_nodes, n_work_items, tavg_data, weights, speeds, couplings, logger, args)
 
 	# numba kernel based on the c index used for cuda
 	def numbac(self):
 		logger.info('start Numba run')
 		from cindex_numbacuda_run import NumbaCudaRun
 		numbacuda = NumbaCudaRun()
-		tavg_data = numbacuda.run_simulation(blockspergrid, threadsperblock, n_inner_steps, n_nodes, buf_len, dt, weights, lengths, params.T, logger)
+		tavg_data = numbacuda.run_simulation(blockspergrid, threadsperblock, n_inner_steps, n_nodes, buf_len, dt,
+											 weights, lengths, params.T, logger)
 		logger.info('tavg_data.shape %s', tavg_data.shape)
 		logger.info('tavg_data %f', tavg_data)
-		#
-		# (numbacuda_FC, python_r) = tvbhpc.simulate_numbacuda()
-		# print(numbacuda_FC)
-		# tavg_data = np.transpose(trace, (1, 2, 0))
-		# tvbhpc.check_results(n_nodes, n_work_items, tavg_data, weights, speeds, couplings, logger, args)
+
+	#
+	# (numbacuda_FC, python_r) = tvbhpc.simulate_numbacuda()
+	# print(numbacuda_FC)
+	# tavg_data = np.transpose(trace, (1, 2, 0))
+	# tvbhpc.check_results(n_nodes, n_work_items, tavg_data, weights, speeds, couplings, logger, args)
 
 	def cuda(self, logger, pop):
 		logger.info('start Cuda run')
@@ -252,7 +260,7 @@ class TVB_test:
 		# logger.info('tavg_data %f', tavg_data)
 
 		# Todo: fix this for cuda
-		# tvbhpc.check_results(n_nodes, n_work_items, tavg_data, weights, speeds, couplings, logger, args)
+		self.check_results(self.n_nodes, self.n_work_items, tavg_data, self.weights, self.speeds, self.couplings, logger, self.args)
 
 		return tavg_data
 
@@ -275,12 +283,12 @@ class TVB_test:
 		# TODO buf_len per speed/block
 		logger.info('dt %f', self.dt)
 		logger.info('nstep %d', self.nstep)
-		logger.info('caching strategy %r', self.args.caching)
-		logger.info('n_inner_steps %f',self.n_inner_steps)
+		# logger.info('caching strategy %r', self.args.caching)
+		logger.info('n_inner_steps %f', self.n_inner_steps)
 		if self.args.test and self.args.n_time % 200:
-			logger.warning('rerun w/ a multiple of 200 time steps (-n 200, -n 400, etc) for testing') #}}}
+			logger.warning('rerun w/ a multiple of 200 time steps (-n 200, -n 400, etc) for testing')  # }}}
 
-		#setup data
+		# setup data
 		# weights = tvbhpc.connectivity.weights
 		logger.info('weights.shape %s', self.weights.shape)
 		# lengths = tvbhpc.connectivity.tract_lengths
@@ -320,6 +328,20 @@ class TVB_test:
 		benchwhat = self.args.bench
 
 		self.args.filename = "{}{}{}{}".format(parent_dir, '/NeuroML/CUDAmodels/', self.args.model.lower(), '.c')
+		logger.info('modellow %s', self.args.model.lower())
+		logger.info('modellow %s', 'wongwang' in self.args.model.lower())
+
+		if ('kuramoto' in self.args.model.lower()):
+			self.states = 1
+		elif 'oscillator' in self.args.model.lower():
+			self.states = 2
+		elif 'wongwang' in self.args.model.lower():
+			self.states = 2
+		elif 'montbrio' in self.args.model.lower():
+			self.states = 2
+		elif 'epileptor' in self.args.model.lower():
+			self.states = 6
+		logger.info('number of states %d', self.states)
 
 		# locals()[benchwhat]()
 		logger.info('benchwhat: %s', benchwhat)
@@ -354,12 +376,13 @@ class TVB_test:
 		toc = time.time()
 		print("Finished python simulation successfully in: {}".format(toc - tac))
 		elapsed = toc - tic
-			# inform about time
+		# inform about time
 		logger.info('elapsed time %0.3f', elapsed)
 		logger.info('%0.3f M step/s', 1e-6 * self.nstep * self.n_inner_steps * self.n_work_items / elapsed)
 		logger.info('finished')
 
 		return tavg
+
 
 if __name__ == '__main__':
 	zelf = TVB_test()

@@ -17,7 +17,7 @@ model_filename = 'Kuramoto'
 
 def default_lems_folder():
     here = os.path.dirname(os.path.abspath(__file__))
-    xmlpath = os.path.join(here, 'dsl_cuda', 'NeuroML', 'XMLmodels')
+    xmlpath = os.path.join(here, 'NeuroML', 'XMLmodels')
     return xmlpath
 
 def lems_file(model_name, folder=None):

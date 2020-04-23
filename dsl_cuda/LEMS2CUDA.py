@@ -10,8 +10,8 @@ from lems.model.model import Model
 
 # model file location
 # model_filename = 'Oscillator'
-model_filename = 'Kuramoto'
-# model_filename = 'Rwongwang'
+# model_filename = 'Kuramoto'
+model_filename = 'Rwongwang'
 # model_filename = 'Epileptor'
 
 

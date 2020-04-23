@@ -30,8 +30,8 @@
         <Constant name="modification" domain="" default="1.0" description="When modification is True, then use nonlinear influence on z. The default default is False, i.e., linear influence."/>
 
         <!-- Parameters will be assumed to be swept. sweep data will be matched by order of entry -->
-        <Parameter name="global_coupling" dimension="float" />
-        <Parameter name="global_speed" dimension="float" />
+        <Parameter name="global_speed" dimension='float'/>
+        <Parameter name="global_coupling" dimension='float'/>
 
         <DerivedParameter name="rec_n" expression="1 / n_node" value="None"/>
         <DerivedParameter name="rec_speed_dt" expression="1.0f / global_speed / (dt)" value="None"/>

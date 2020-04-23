@@ -48,8 +48,8 @@ __global__ void Kuramoto(
 
     // unpack params
     // These are the two parameters which are usually explore in fitting in this model
-    const float global_coupling = params(0);
-    const float global_speed = params(1);
+    const float global_speed = params(0);
+    const float global_coupling = params(1);
 
     // regular constants
     const float omega = 60.0 * 2.0 * M_PI_F / 1e3;
@@ -63,14 +63,14 @@ __global__ void Kuramoto(
     // derived parameters
     const float rec_n = 1.0f / n_node;
     const float rec_speed_dt = 1.0f / global_speed / (dt);
-    const float nsig = sqrt(dt) * sqrt(2.0 * 1e-5);
+    const float nsig = sqrt(dt) * sqrt(2.0 * 1e-3);
 
 
 
     curandState crndst;
     curand_init(id * (blockDim.x * gridDim.x * gridDim.y), 0, 0, &crndst);
 
-    double V = 0.0;
+    float V = 0.0;
 
     //***// This is only initialization of the observable
     for (unsigned int i_node = 0; i_node < n_node; i_node++)
@@ -82,7 +82,7 @@ __global__ void Kuramoto(
     //***// This is the loop over nodes, which also should stay the same
         for (unsigned int i_node = threadIdx.y; i_node < n_node; i_node+=blockDim.y)
         {
-            float coupling = 0.0f;
+            c_0 = 0.0f;
 
             V = state((t) % nh, i_node + 0 * n_node);
 
@@ -103,12 +103,12 @@ __global__ void Kuramoto(
                 float V_j = state(((t - dij + nh) % nh), j_node + 0 * n_node);
 
                 // Sum it all together using the coupling function. Kuramoto coupling: (postsyn * presyn) == ((a) * (sin(xj - xi))) 
-                coupling += wij * a * sin(V_j - V);
+                c_0 += wij * a * sin(V_j - V);
 
             } // j_node */
 
             // rec_n is used for the scaling over nodes
-            c_0 = global_coupling * rec_n * coupling;
+            c_0 *= global_coupling * rec_n;
 
             // This is dynamics step and the update in the state of the node
             V += dt * (omega + c_0);
@@ -123,7 +123,9 @@ __global__ void Kuramoto(
             state((t + 1) % nh, i_node + 0 * n_node) = V;
 
             // Update the observable only for the last timestep
+            if (t == (i_step + n_step - 1)){
                 tavg(i_node + 0 * n_node) = sin(V);
+            }
 
             // sync across warps executing nodes for single sim, before going on to next time step
             __syncthreads();

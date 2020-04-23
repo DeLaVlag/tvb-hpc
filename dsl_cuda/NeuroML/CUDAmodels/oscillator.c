@@ -64,8 +64,8 @@ __global__ void Oscillator(
 
     // unpack params
     // These are the two parameters which are usually explore in fitting in this model
-    const float global_coupling = params(0);
-    const float global_speed = params(1);
+    const float global_speed = params(0);
+    const float global_coupling = params(1);
 
     // regular constants
     const float tau = 1.0;
@@ -82,7 +82,7 @@ __global__ void Oscillator(
     const float gamma = 1.0;
 
     // coupling constants, coupling itself is hardcoded in kernel
-    const float c_a = 0.1;
+    const float c_a = 1;
 
     // coupling parameters
     float c_0 = 0.0;
@@ -90,15 +90,16 @@ __global__ void Oscillator(
     // derived parameters
     const float rec_n = 1 / n_node;
     const float rec_speed_dt = 1.0f / global_speed / (dt);
-    const float nsig = sqrt(dt) * sqrt(2.0 * 1e-5);
+    const float nsig = sqrt(dt) * sqrt(2.0 * 1e-3);
+    const float lc = 0.0;
 
-    // conditional_derived variable declaration
+
 
     curandState crndst;
     curand_init(id * (blockDim.x * gridDim.x * gridDim.y), 0, 0, &crndst);
 
-    double V = 0.0;
-    double W = 0.0;
+    float V = 0.0;
+    float W = 0.0;
 
     //***// This is only initialization of the observable
     for (unsigned int i_node = 0; i_node < n_node; i_node++)
@@ -110,7 +111,7 @@ __global__ void Oscillator(
     //***// This is the loop over nodes, which also should stay the same
         for (unsigned int i_node = threadIdx.y; i_node < n_node; i_node+=blockDim.y)
         {
-            float coupling = 0.0f;
+            c_0 = 0.0f;
 
             V = state((t) % nh, i_node + 0 * n_node);
             W = state((t) % nh, i_node + 1 * n_node);
@@ -120,39 +121,36 @@ __global__ void Oscillator(
 
             for (unsigned int j_node = 0; j_node < n_node; j_node++)
             {
-//                //***// Get the weight of the coupling between node i and node j
+                //***// Get the weight of the coupling between node i and node j
                 float wij = weights[i_n + j_node]; // nb. not coalesced
                 if (wij == 0.0)
                     continue;
-//
-//                //***// Get the delay between node i and node j
+
+                //***// Get the delay between node i and node j
                 unsigned int dij = lengths[i_n + j_node] * rec_speed_dt;
-//
-//                //***// Get the state of node j which is delayed by dij
-//                float V_j = 1;
+
+                //***// Get the state of node j which is delayed by dij
                 float V_j = state(((t - dij + nh) % nh), j_node + 0 * n_node);
-//
-//                // Sum it all together using the coupling function. Kuramoto coupling: (postsyn * presyn) == ((a) * (sin(xj - xi)))
-                coupling += c_a * sin(V_j - V);
-//
+
+                // Sum it all together using the coupling function. Kuramoto coupling: (postsyn * presyn) == ((a) * (sin(xj - xi))) 
+                c_0 += wij * c_a * sin(V_j - V);
+
             } // j_node */
 
             // rec_n is used for the scaling over nodes
-            c_0 = global_coupling * global_speed;
-
-            // The conditional variables
+            c_0 *= global_coupling;
 
             // This is dynamics step and the update in the state of the node
-            V = d * tau * (alpha * W - f * powf(V, 3) + e * powf(V, 2) + g * V + gamma * I + gamma * c_0 + coupling * V);
-            W = d * (a + b * V + c * powf(V, 2) - beta * W) / tau;
+            V += dt * (d * tau * (alpha * W - f * powf(V, 3) + e * powf(V, 2) + g * V + gamma * I + gamma * c_0 + lc * V));
+            W += dt * (d * (a + b * V + c * powf(V, 2) - beta * W) / tau);
 
             // Add noise (if noise components are present in model), integrate with stochastic forward euler and wrap it up
-            V += dt * (nsig * curand_normal2(&crndst).x + d * tau * (alpha * W - f * powf(V, 3) + e * powf(V, 2) + g * V + gamma * I + gamma * c_0 + coupling * V));
-            W += dt * (nsig * curand_normal2(&crndst).x + d * (a + b * V + c * powf(V, 2) - beta * W) / tau);
+            V += nsig * curand_normal2(&crndst).x;
+            W += nsig * curand_normal2(&crndst).x;
 
             // Wrap it within the limits of the model
-            wrap_it_V(V);
-            wrap_it_W(W);
+            V = wrap_it_V(V);
+            W = wrap_it_W(W);
 
             // Update the state
             state((t + 1) % nh, i_node + 0 * n_node) = V;
@@ -160,7 +158,7 @@ __global__ void Oscillator(
 
             // Update the observable only for the last timestep
             if (t == (i_step + n_step - 1)){
-                tavg(i_node + 0 * n_node) = V + W;
+                tavg(i_node + 0 * n_node) = V;
             }
 
             // sync across warps executing nodes for single sim, before going on to next time step

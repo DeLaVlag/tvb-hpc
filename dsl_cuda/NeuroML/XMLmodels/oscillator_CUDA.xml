@@ -26,24 +26,25 @@
 It scales both I and the long range coupling term.."/>
 
         <!-- Parameters will be assumed to be swept. sweep data will be matched by order of entry -->
-        <Parameter name="global_coupling" dimension="float" />
-        <Parameter name="global_speed" dimension="float" />
+        <Parameter name="global_speed" dimension='float'/>
+        <Parameter name="global_coupling" dimension='float'/>
 
         <DerivedParameter name="rec_n" expression="1 / n_node" value="None"/>
         <DerivedParameter name="rec_speed_dt" expression="1.0f / global_speed / (dt)" value="None"/>
-        <DerivedParameter name="nsig" expression="sqrt(dt) * sqrt(2.0 * 1e-5)" value="None"/>
+        <DerivedParameter name="nsig" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" value="None"/>
+        <DerivedParameter name="lc" expression="0.0" value="None"/>
 
         <Dynamics>
             <StateVariable name="V" default="" boundaries="-2.0, 4.0"/>
             <StateVariable name="W" default="" boundaries="-6.0, 6.0"/>
 
-            <TimeDerivative name="V" expression="d * tau * (alpha * W - f * powf(V, 3) + e * powf(V, 2) + g * V + gamma * I + gamma * c_0 + coupling * V)"/>
+            <TimeDerivative name="V" expression="d * tau * (alpha * W - f * powf(V, 3) + e * powf(V, 2) + g * V + gamma * I + gamma * c_0 + lc * V)"/>
             <TimeDerivative name="W" expression="d * (a + b * V + c * powf(V, 2) - beta * W) / tau"/>
         </Dynamics>
 
         <!-- Exposures are used for observables, for the name enter variable to be observed (usually states)
         and for dimension enter the reduction functionality-->
-        <Exposure name="V" choices="V + W" default="V"/>
+        <Exposure name="V" choices="V" default="V"/>
 
     </ComponentType>
 
@@ -51,7 +52,7 @@ It scales both I and the long range coupling term.."/>
 
 <!--        Added function for pre and post synaptic activity. Fixed the power being **, however no parse checks for it-->
 
-        <Constant name="c_a" domain="lo=0.0, hi=10., step=0.1" default="0.1" description="Rescales the connection strength."/>
+        <Constant name="c_a" domain="lo=0.0, hi=10., step=0.1" default="1" description="Rescales the connection strength."/>
 
 <!--        variables for pre synaptic function-->
         <Parameter name="V_j" dimension='0'/>
@@ -64,7 +65,7 @@ It scales both I and the long range coupling term.."/>
         </Dynamics>
 
         <!-- Handle local coupling result, full expression is c_0 *= 'value'. Name option is hardcoded -->
-        <DerivedParameter name="c_0" expression="global_coupling * global_speed" value="None"/>
+        <DerivedParameter name="c_0" expression="global_coupling" value="None"/>
 
     </ComponentType>
 

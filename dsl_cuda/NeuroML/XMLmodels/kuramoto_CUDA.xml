@@ -11,8 +11,8 @@
         <Constant name="omega" domain="" default="60.0 * 2.0 * M_PI_F / 1e3" description="sets the base line frequency for the Kuramoto oscillator in [rad/ms]"/>
 
         <!-- Parameters will be assumed to be swept. sweep data will be matched by order of entry -->
-        <Parameter name="global_coupling" dimension='float'/>
         <Parameter name="global_speed" dimension='float'/>
+        <Parameter name="global_coupling" dimension='float'/>
 
         <DerivedParameter name="rec_n" expression="1.0f / n_node" value="None"/>
         <DerivedParameter name="rec_speed_dt" expression="1.0f / global_speed / (dt)" value="None"/>
@@ -46,7 +46,7 @@
         </Dynamics>
 
         <!-- Handle local coupling result, full expression is c_0 *= 'value'. Name option is hardcoded -->
-        <DerivedParameter name="c_0" expression="global_coupling * rec_n * coupling" value="None"/>
+        <DerivedParameter name="c_0" expression="global_coupling * rec_n" value="None"/>
 
     </ComponentType>
 

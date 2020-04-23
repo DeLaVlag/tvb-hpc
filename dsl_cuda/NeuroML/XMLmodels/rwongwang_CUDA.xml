@@ -43,8 +43,8 @@
         <Constant name="w_plus__J_NMDA" domain="" default="w_plus * J_NMDA" description=""/>
 
         <!-- Parameters will be assumed to be swept. sweep data will be matched by order of entry -->
-        <Parameter name="global_coupling" dimension="float" />
-        <Parameter name="global_speed" dimension="float" />
+        <Parameter name="global_speed" dimension='float'/>
+        <Parameter name="global_coupling" dimension='float'/>
 
         <DerivedParameter name="rec_n" expression="1 / n_node" value="None"/>
         <DerivedParameter name="rec_speed_dt" expression="1.0f / global_speed / (dt)" value="None"/>
@@ -54,7 +54,7 @@
             <StateVariable name="V" default="" boundaries="-2.0, 4.0"/>
             <StateVariable name="W" default="" boundaries="-6.0, 6.0"/>
 
-            <DerivedVariable name="tmp_I_E" expression="a_E * (w_E__I_0 + w_plus__J_NMDA * V + coupling - JI*W) - b_E"/>
+            <DerivedVariable name="tmp_I_E" expression="a_E * (w_E__I_0 + w_plus__J_NMDA * V + c_0 - JI*W) - b_E"/>
             <DerivedVariable name="tmp_H_E" expression="tmp_I_E/(1.0-exp(min_d_E * tmp_I_E))"/>
             <DerivedVariable name="tmp_I_I" expression="(a_I*((w_I__I_0+(J_NMDA * V))-W))-b_I"/>
             <DerivedVariable name="tmp_H_I" expression="tmp_I_I/(1.0-exp(min_d_I*tmp_I_I))"/>
@@ -66,7 +66,7 @@
         <!-- Exposures are used for observables, for the name enter variable to be observed (usually states)
         and for dimension enter the reduction functionality-->
         <Exposure name="V" choices="V" default="V"/>
-        <Exposure name="W" choices="W" default="W"/>
+<!--        <Exposure name="W" choices="W" default="W"/>-->
 
     </ComponentType>
 
@@ -74,18 +74,19 @@
 
 <!--        Added function for pre and post synaptic activity. Fixed the power being **, however no parse checks for it-->
 
-        <Constant name="a" domain="lo=0.0, hi=10., step=0.1" default="0.1" description="Rescales the connection strength."/>
+        <Constant name="a" domain="lo=0.0, hi=10., step=0.1" default="1" description="Rescales the connection strength."/>
 
         <!-- variables for pre synaptic function-->
         <Parameter name="V_j" dimension='0'/>
 
     <Dynamics>
-        <DerivedVariable name="pre" expression="sin(V_j - V)" description = "pre synaptic function for coupling activity"/>
+        <DerivedVariable name="pre" expression="G_J_NMDA" description = "pre synaptic function for coupling activity"/>
         <DerivedVariable name="post" expression="a" description = "post synaptic function for coupling activity"/>
     </Dynamics>
 
-        <!-- Handle local coupling result, full expression is c_0 *= 'value'. Name option is hardcoded -->
-        <DerivedParameter name="c_0" expression="global_coupling * global_speed" value="None"/>
+        <!-- Handle local coupling result, full expression is c_0 *= 'value'. Name appears as variable def and is resetted -->
+        <!-- c_0 can be used in derived or state variable -->
+        <DerivedParameter name="c_0" expression="" value="None"/>
 
     </ComponentType>
 

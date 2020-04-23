@@ -89,28 +89,28 @@ __global__ void ${modelname}(
     // derived parameters
     % for par_var in derparams:
     const float ${par_var.name} = ${par_var.expression};
-    % endfor
-    %endif
+    % endfor /
+    %endif /
 
     % if dynamics.derived_variables:
     // the dynamic derived variables declarations
     % for i, dv in enumerate(dynamics.derived_variables):
     float ${dv.name} = 0.0;
     % endfor /
-    % endif
+    % endif /
 
     % if dynamics.conditional_derived_variables:
     // conditional_derived variable declaration
     % for cd in dynamics.conditional_derived_variables:
     float ${cd.name} = 0.0;
-    % endfor
-    % endif
+    % endfor /
+    % endif /
 
     curandState crndst;
     curand_init(id * (blockDim.x * gridDim.x * gridDim.y), 0, 0, &crndst);
 
     % for state_var in (dynamics.state_variables):
-    double ${state_var.name} = 0.0;
+    float ${state_var.name} = 0.0;
     % endfor
 
     //***// This is only initialization of the observable
@@ -123,12 +123,12 @@ __global__ void ${modelname}(
     //***// This is the loop over nodes, which also should stay the same
         for (unsigned int i_node = threadIdx.y; i_node < n_node; i_node+=blockDim.y)
         {
-            ##% for m in range(len(coupling)):
-                ##% for cdp in (coupling[m].derived_parameters):
-            ## ${cdp.name} = 0.0f;
-            ##     %endfor
-            ## % endfor /
-            float coupling = 0.0f;
+            % for m in range(len(coupling)):
+                % for cdp in (coupling[m].derived_parameters):
+            ${cdp.name} = 0.0f;
+                %endfor
+            % endfor /
+            ## float coupling = 0.0f;
 
             % for i, item in enumerate(dynamics.state_variables):
             ${item.name} = state((t) % nh, i_node + ${i} * n_node);
@@ -160,11 +160,12 @@ __global__ void ${modelname}(
                     % if coupling[ml].dynamics.derived_variables and \
                         (coupling[ml].dynamics.derived_variables['pre'].expression != 'None' or \
                          coupling[ml].dynamics.derived_variables['post'].expression != 'None'):
-                    ## % for cdp in (coupling[ml].derived_parameters):
+                    % for cdp in (coupling[ml].derived_parameters):
 
-                coupling += wij * ${coupling[ml].dynamics.derived_variables['post'].expression} * ${coupling[ml].dynamics.derived_variables['pre'].expression};
+                ${cdp.name} += wij * ${coupling[ml].dynamics.derived_variables['post'].expression} * ${coupling[ml].dynamics.derived_variables['pre'].expression};
+                ## coupling += wij * ${coupling[ml].dynamics.derived_variables['post'].expression} * ${coupling[ml].dynamics.derived_variables['pre'].expression};
 
-                    ## %endfor
+                    %endfor
                     % endif /
                 % endfor /
             } // j_node */
@@ -172,7 +173,9 @@ __global__ void ${modelname}(
             // rec_n is used for the scaling over nodes
             % for m in range(len(coupling)):
                 % for cdp in (coupling[m].derived_parameters):
-            ${cdp.name} = ${cdp.expression};
+                    % if cdp.expression:
+            ${cdp.name} *= ${cdp.expression};
+                    % endif /
                 % endfor
             % endfor \
 
@@ -227,11 +230,11 @@ __global__ void ${modelname}(
             % endfor /
 
             // Update the observable only for the last timestep
-            ##if (t == (i_step + n_step - 1)){
+            if (t == (i_step + n_step - 1)){
                 % for i, expo in enumerate(expolist):
                 tavg(i_node + ${i} * n_node) = ${expo};
                 % endfor /
-            ##}
+            }
 
             // sync across warps executing nodes for single sim, before going on to next time step
             __syncthreads();

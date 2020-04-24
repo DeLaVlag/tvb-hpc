@@ -30,7 +30,7 @@ __device__ float wrap_it_PI(float x)
 % if (state_var.boundaries != "PI"):
 __device__ float wrap_it_${state_var.name}(float ${state_var.name})
 {
-    int ${state_var.name}dim[] = {${state_var.boundaries}};
+    float ${state_var.name}dim[] = {${state_var.boundaries}};
     if (${state_var.name} < ${state_var.name}dim[0]) ${state_var.name} = ${state_var.name}dim[0];
     else if (${state_var.name} > ${state_var.name}dim[1]) ${state_var.name} = ${state_var.name}dim[1];
 
@@ -115,7 +115,12 @@ __global__ void ${modelname}(
 
     //***// This is only initialization of the observable
     for (unsigned int i_node = 0; i_node < n_node; i_node++)
+    {
         tavg(i_node) = 0.0f;
+        if (i_step == 0){
+            state(i_step, i_node) = 0.001;
+        }
+    }
 
     //***// This is the loop over time, should stay always the same
     for (unsigned int t = i_step; t < (i_step + n_step); t++)
@@ -144,8 +149,13 @@ __global__ void ${modelname}(
                 if (wij == 0.0)
                     continue;
 
+                % if (derparams['rec_speed_dt'] and derparams['rec_speed_dt'].expression != '0'):
                 //***// Get the delay between node i and node j
                 unsigned int dij = lengths[i_n + j_node] * rec_speed_dt;
+                % else:
+                // no delay specified
+                unsigned int dij = 0;
+                % endif
 
                 //***// Get the state of node j which is delayed by dij
                 % for m in range(len(coupling)):

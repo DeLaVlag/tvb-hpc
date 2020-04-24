@@ -80,20 +80,21 @@ __global__ void Rwongwangref(
 #define tavg(i_node) (tavg_pwi[((i_node) * size) + id])
 
     // unpack params
-    const float G = params(0);
+    const float G = 2.0; //params(0);
     const float J_NMDA = 0.15;//params(0);
     const float JI= 1.0;
     const float G_J_NMDA = G*J_NMDA;
     // derived
     
     const float w_plus__J_NMDA = (w_plus * J_NMDA);
-    const float sig = params(1);//0.001;//sqrt(dt) * sqrt(2.0 * 1e-3);
+    const float sig = sqrt(dt) * sqrt(2.0 * 1e-5); //params(1);//0.001;//
     // We have three variables which could be changed here. Actually 4
     // G (the global coupling), sigma (the noise), J_NMDA(the excitatory synaptic coupling) and J_i(the inner inhibition for each region)
     // For now we are making things simple and only change two parameters, G and J_NMDA.
 
     curandState s;
-    curand_init(id + (unsigned int) clock64(), 0, 0, &s);
+//    curand_init(id + (unsigned int) clock64(), 0, 0, &s);
+    curand_init(id * (blockDim.x * gridDim.x * gridDim.y), 0, 0, &s);
  
     double tmp_I_E;
     double tmp_H_E;
@@ -113,7 +114,7 @@ __global__ void Rwongwangref(
 
     for (unsigned int t = i_step; t < (i_step + n_step); t++)
     {
-        for (unsigned int i_node = 0; i_node < n_node; i_node++)
+        for (unsigned int i_node = threadIdx.y; i_node < n_node; i_node+=blockDim.y)
         {
             sum = 0.0f;
             S_E = state((t) % nh, i_node);
@@ -124,7 +125,7 @@ __global__ void Rwongwangref(
                 float wij = G_J_NMDA*weights[(i_node*n_node) + j_node]; // nb. not coalesced
                 if (wij == 0.0)
                     continue;
-                sum += wij * state((t) % nh, j_node); //of J
+                sum += wij * state((t) % nh, j_node); //of Jx
             }
             // external Input set to 0, no task evoked activity
             tmp_I_E = JI*S_I; // Inner inhibition set to 1
@@ -135,12 +136,12 @@ __global__ void Rwongwangref(
             tmp_I_I = (a_I*(((w_I__I_0)+(J_NMDA * S_E))-(S_I)))-b_I;
             tmp_H_I = tmp_I_I/(1.0-exp(min_d_I*tmp_I_I));
 
-            S_E = (S_E)+(dt*(sig * curand_normal(&s)))+(dt*((imintau_E* S_E)+(tmp_H_E*((1-S_E)*gamma_E))));
-            S_I = (S_I)+(dt*(sig * curand_normal(&s)))+(dt*((imintau_I* S_I)+(tmp_H_I*gamma_I)));
+            S_E = (S_E)+((sig * curand_normal(&s)))+(dt*((imintau_E* S_E)+(tmp_H_E*((1-S_E)*gamma_E))));
+            S_I = (S_I)+((sig * curand_normal(&s)))+(dt*((imintau_I* S_I)+(tmp_H_I*gamma_I)));
             if(S_E>1) S_E = 1;
             if(S_I>1) S_I = 1;
-            if(S_E<0) S_E = 0;
-            if(S_I<0) S_I = 0;
+            if(S_E<0) S_E = 0.0000001;
+            if(S_I<0) S_I = 0.0000001;
             state((t+1) % nh, i_node) = S_E;
             state((t+1) % nh, i_node+(n_node)) = S_I;
             tavg(i_node) = S_E;

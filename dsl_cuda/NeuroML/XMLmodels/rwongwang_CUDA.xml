@@ -47,12 +47,13 @@
         <Parameter name="global_coupling" dimension='float'/>
 
         <DerivedParameter name="rec_n" expression="1 / n_node" value="None"/>
-        <DerivedParameter name="rec_speed_dt" expression="1.0f / global_speed / (dt)" value="None"/>
+        <!-- If rec_speed_dt not is defined or is zero, then no delays will be fetched -->
+        <DerivedParameter name="rec_speed_dt" expression="0" value="None"/>
         <DerivedParameter name="nsig" expression="sqrt(dt) * sqrt(2.0 * 1e-5)" value="None"/>
 
         <Dynamics>
-            <StateVariable name="V" default="" boundaries="-2.0, 4.0"/>
-            <StateVariable name="W" default="" boundaries="-6.0, 6.0"/>
+            <StateVariable name="V" default="" boundaries="0.0000001, 1"/>
+            <StateVariable name="W" default="" boundaries="0.0000001, 1"/>
 
             <DerivedVariable name="tmp_I_E" expression="a_E * (w_E__I_0 + w_plus__J_NMDA * V + c_0 - JI*W) - b_E"/>
             <DerivedVariable name="tmp_H_E" expression="tmp_I_E/(1.0-exp(min_d_E * tmp_I_E))"/>
@@ -80,7 +81,7 @@
         <Parameter name="V_j" dimension='0'/>
 
     <Dynamics>
-        <DerivedVariable name="pre" expression="G_J_NMDA" description = "pre synaptic function for coupling activity"/>
+        <DerivedVariable name="pre" expression="V_j * G_J_NMDA" description = "pre synaptic function for coupling activity"/>
         <DerivedVariable name="post" expression="a" description = "post synaptic function for coupling activity"/>
     </Dynamics>
 

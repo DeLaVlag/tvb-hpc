@@ -27,7 +27,7 @@ __device__ float wrap_it_PI(float x)
 }
 __device__ float wrap_it_V(float V)
 {
-    int Vdim[] = {-2.0, 4.0};
+    float Vdim[] = {0.0000001, 1};
     if (V < Vdim[0]) V = Vdim[0];
     else if (V > Vdim[1]) V = Vdim[1];
 
@@ -35,7 +35,7 @@ __device__ float wrap_it_V(float V)
 }
 __device__ float wrap_it_W(float W)
 {
-    int Wdim[] = {-6.0, 6.0};
+    float Wdim[] = {0.0000001, 1};
     if (W < Wdim[0]) W = Wdim[0];
     else if (W > Wdim[1]) W = Wdim[1];
 
@@ -90,7 +90,7 @@ __global__ void Rwongwang(
     const float w_I__I_0 = w_I * I_0;
     const float J_N = 0.15;
     const float J_I = 1.0;
-    const float G = 2.0;
+    const float G = params(0);//2.0;
     const float lamda = 0.0;
     const float J_NMDA = 0.15;
     const float JI = 1.0;
@@ -105,7 +105,7 @@ __global__ void Rwongwang(
 
     // derived parameters
     const float rec_n = 1 / n_node;
-    const float rec_speed_dt = 1.0f / global_speed / (dt);
+    const float rec_speed_dt = 0;
     const float nsig = sqrt(dt) * sqrt(2.0 * 1e-5);
 
     // the dynamic derived variables declarations
@@ -123,7 +123,12 @@ __global__ void Rwongwang(
 
     //***// This is only initialization of the observable
     for (unsigned int i_node = 0; i_node < n_node; i_node++)
+    {
         tavg(i_node) = 0.0f;
+        if (i_step == 0){
+            state(i_step, i_node) = 0.001;
+        }
+    }
 
     //***// This is the loop over time, should stay always the same
     for (unsigned int t = i_step; t < (i_step + n_step); t++)
@@ -146,14 +151,14 @@ __global__ void Rwongwang(
                 if (wij == 0.0)
                     continue;
 
-                //***// Get the delay between node i and node j
-                unsigned int dij = lengths[i_n + j_node] * rec_speed_dt;
+                // no delay specified
+                unsigned int dij = 0;
 
                 //***// Get the state of node j which is delayed by dij
                 float V_j = state(((t - dij + nh) % nh), j_node + 0 * n_node);
 
                 // Sum it all together using the coupling function. Kuramoto coupling: (postsyn * presyn) == ((a) * (sin(xj - xi))) 
-                c_0 += wij * a * G_J_NMDA;
+                c_0 += wij * a * V_j * G_J_NMDA;
 
             } // j_node */
 
@@ -169,8 +174,8 @@ __global__ void Rwongwang(
             W += dt * ((imintau_I* W)+(tmp_H_I*gamma_I));
 
             // Add noise (if noise components are present in model), integrate with stochastic forward euler and wrap it up
-            V += nsig * curand_normal2(&crndst).x;
-            W += nsig * curand_normal2(&crndst).x;
+//            V += nsig * curand_normal(&crndst);
+//            W += nsig * curand_normal(&crndst);
 
             // Wrap it within the limits of the model
             V = wrap_it_V(V);

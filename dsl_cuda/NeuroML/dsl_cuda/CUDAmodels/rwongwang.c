@@ -90,7 +90,7 @@ __global__ void Rwongwang(
     const float w_I__I_0 = w_I * I_0;
     const float J_N = 0.15;
     const float J_I = 1.0;
-    const float G = params(0);//2.0;
+    const float G = 2.0;
     const float lamda = 0.0;
     const float J_NMDA = 0.15;
     const float JI = 1.0;
@@ -174,8 +174,8 @@ __global__ void Rwongwang(
             W += dt * ((imintau_I* W)+(tmp_H_I*gamma_I));
 
             // Add noise (if noise components are present in model), integrate with stochastic forward euler and wrap it up
-//            V += nsig * curand_normal(&crndst);
-//            W += nsig * curand_normal(&crndst);
+            V += nsig * curand_normal2(&crndst).x;
+            W += nsig * curand_normal2(&crndst).x;
 
             // Wrap it within the limits of the model
             V = wrap_it_V(V);

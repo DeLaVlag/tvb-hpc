@@ -4,14 +4,14 @@ import numpy as _lpy_np
 import numba.cuda as _lpy_ncu
 from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
 import numba as _lpy_numba
-from tvb_hpc import utils, network
-from typing import List
+# from tvb_hpc import utils, network
+# from typing import List
 
 # from tvb.simulator.lab import *
 
 import logging
 
-LOG = utils.getLogger('tvb_hpc')
+# LOG = utils.getLogger('tvb_hpc')
 
 
 @_lpy_ncu.jit#(debug=True)
@@ -103,7 +103,7 @@ class NumbaCudaRun:
 	def run_simulation(self, blockspergrid, threadsperblock, n_inner_steps, n_nodes, buf_len, dt, weights, lengths, params, logger):
 		_lpy_ncu.select_device(0)
 		logging.getLogger("numba").setLevel(logging.WARNING)
-		LOG.info(_lpy_ncu.gpus)
+		# LOG.info(_lpy_ncu.gpus)
 
 		# blockspergrid = 32
 		# threadsperblock = 32

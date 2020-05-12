@@ -1,7 +1,7 @@
-# from tvb.simulator.lab import *
-from tvb.datatypes import connectivity
-from tvb.simulator import integrators
-from tvb.simulator import coupling
+from tvb.simulator.lab import *
+# from tvb.datatypes import connectivity
+# from tvb.simulator import integrators
+# from tvb.simulator import coupling
 import numpy as np
 import numpy.random as rgn
 import matplotlib.pyplot as plt
@@ -25,6 +25,8 @@ sys.path.insert(0, parent_dir)
 
 sys.path.append("{}{}".format(parent_dir, '/NeuroML/'))
 
+print(sys.path)
+
 np.set_printoptions(threshold=sys.maxsize)
 
 # for numexpr package missing and no permissions to install:
@@ -41,7 +43,7 @@ rgn.seed(79)
 class TVB_test:
 
 	def __init__(self):
-		self.sim_length = 400
+		self.sim_length = self.args.n_time # 400
 		self.g = np.array([1.0])
 		self.s = np.array([1.0])
 		self.dt = 0.1
@@ -53,7 +55,7 @@ class TVB_test:
 		self.lengths = self.connectivity.tract_lengths
 		self.n_nodes = self.weights.shape[0]
 		self.args = self.parse_args()
-		self.dt, self.tavg_period = 1.0, 10.0
+		self.tavg_period = 10.0
 		self.nstep = self.args.n_time  # 4s
 		self.n_inner_steps = int(self.tavg_period / self.dt)
 		self.nc = self.args.n_coupling
@@ -74,7 +76,21 @@ class TVB_test:
 		return white_matter, white_matter_coupling
 
 	def tvb_python_model(self):
-		populations = models.Kuramoto()
+		whatmodel=self.args.model.lower()
+		print(whatmodel)
+
+		switcher = {
+			'kuramoto': models.Kuramoto,
+			'oscillator': models.Generic2dOscillator,
+			'wongwang': models.ReducedWongWang,
+			# 'montbrio': models.Montbrio,
+			'epileptor': models.Epileptor
+		}
+		modelexe = switcher.get(whatmodel, 'invalid model')
+		# print(modelexe)
+		populations = modelexe()
+
+		# populations = models.Kuramoto()
 		populations.configure()
 		populations.omega = np.array([self.omega])
 		return populations
@@ -102,7 +118,7 @@ class TVB_test:
 							choices=['Rwongwang', 'Kuramoto', 'Epileptor', 'Oscillator', \
 									 'Oscillatorref', 'Kuramotoref', 'Rwongwangref'],
 							help="neural mass model to be used during the simulation",
-							default='Kuramoto'
+							default='Oscillator'
 							)
 		parser.add_argument('--lineinfo', default=True, action='store_true')
 
@@ -222,7 +238,7 @@ class TVB_test:
 		# print(r)
 		return np.squeeze(tavg_data)
 
-	def numba(self):
+	def numba(self, logger, pop):
 		logger.info('start Numba run')
 		from numbacuda_run import NumbaCudaRun
 		numbacuda = NumbaCudaRun()
@@ -235,14 +251,21 @@ class TVB_test:
 	# tvbhpc.check_results(n_nodes, n_work_items, tavg_data, weights, speeds, couplings, logger, args)
 
 	# numba kernel based on the c index used for cuda
-	def numbac(self):
+	def numbac(self, logger, pop):
 		logger.info('start Numba run')
 		from cindex_numbacuda_run import NumbaCudaRun
 		numbacuda = NumbaCudaRun()
-		tavg_data = numbacuda.run_simulation(blockspergrid, threadsperblock, n_inner_steps, n_nodes, buf_len, dt,
-											 weights, lengths, params.T, logger)
+
+		threadsperblock = len(self.couplings)
+		blockspergrid = len(self.speeds)
+		logger.info('threadsperblock %d', threadsperblock)
+		logger.info('blockspergrid %d', blockspergrid)
+
+		tavg_data = numbacuda.run_simulation(blockspergrid, threadsperblock, self.n_inner_steps, self.n_nodes,
+											 self.buf_len, self.dt, self.weights, self.lengths, self.params.T,
+											 logger)
 		logger.info('tavg_data.shape %s', tavg_data.shape)
-		logger.info('tavg_data %f', tavg_data)
+		# logger.info('tavg_data %f', tavg_data)
 
 	#
 	# (numbacuda_FC, python_r) = tvbhpc.simulate_numbacuda()
@@ -320,11 +343,6 @@ class TVB_test:
 		tac = time.time()
 		logger.info("Setup in: {}".format(tac - tic))
 
-		threadsperblock = len(self.couplings)
-		blockspergrid = len(self.speeds)
-		logger.info('threadsperblock %d', threadsperblock)
-		logger.info('blockspergrid %d', blockspergrid)
-
 		benchwhat = self.args.bench
 
 		self.args.filename = "{}{}{}{}".format(parent_dir, '/NeuroML/CUDAmodels/', self.args.model.lower(), '.c')
@@ -347,9 +365,9 @@ class TVB_test:
 		logger.info('benchwhat: %s', benchwhat)
 		# def bencher(benchwhat):
 		switcher = {
-			'regular': tvbhpc.regular,
-			'numba': tvbhpc.numba,
-			'numbac': tvbhpc.numbac,
+			'regular': self.regular,
+			'numba': self.numba,
+			'numbac': self.numbac,
 			'cuda': self.cuda
 		}
 		func = switcher.get(benchwhat, 'invalid bench choice')

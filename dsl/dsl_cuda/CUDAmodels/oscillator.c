@@ -27,7 +27,7 @@ __device__ float wrap_it_PI(float x)
 }
 __device__ float wrap_it_V(float V)
 {
-    int Vdim[] = {-2.0, 4.0};
+    float Vdim[] = {-2.0, 4.0};
     if (V < Vdim[0]) V = Vdim[0];
     else if (V > Vdim[1]) V = Vdim[1];
 
@@ -35,7 +35,7 @@ __device__ float wrap_it_V(float V)
 }
 __device__ float wrap_it_W(float W)
 {
-    int Wdim[] = {-6.0, 6.0};
+    float Wdim[] = {-6.0, 6.0};
     if (W < Wdim[0]) W = Wdim[0];
     else if (W > Wdim[1]) W = Wdim[1];
 
@@ -103,7 +103,12 @@ __global__ void Oscillator(
 
     //***// This is only initialization of the observable
     for (unsigned int i_node = 0; i_node < n_node; i_node++)
+    {
         tavg(i_node) = 0.0f;
+        if (i_step == 0){
+            state(i_step, i_node) = 0.001;
+        }
+    }
 
     //***// This is the loop over time, should stay always the same
     for (unsigned int t = i_step; t < (i_step + n_step); t++)

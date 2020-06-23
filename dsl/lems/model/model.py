@@ -332,7 +332,6 @@ class Model(LEMSBase):
         """
         Resolves references in this model.
         """
-
         model = self.copy()
 
         for ct in model.component_types:

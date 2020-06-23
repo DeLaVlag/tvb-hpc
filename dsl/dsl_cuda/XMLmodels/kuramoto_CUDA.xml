@@ -1,5 +1,4 @@
-<Lems
-      description="A number of ComponentTypes for rate based/population models">
+<Lems>
 
     <ComponentType name="Kuramoto"
                    description="Base type of any cell/population which has a (dimensionless) rate _R."
@@ -11,13 +10,14 @@
         <Parameter name="global_speed" dimension='float'/>
         <Parameter name="global_coupling" dimension='float'/>
 
-        <DerivedParameter name="rec_n" expression="1.0f / n_node" value="None"/>
-        <DerivedParameter name="rec_speed_dt" expression="1.0f / global_speed / (dt)" value="None"/>
-        <DerivedParameter name="nsig" expression="sqrt(dt) * sqrt(2.0 * 1e-5)" value="None"/>
+        <DerivedParameter name="rec_n" expression="1.0f / n_node"/>
+        <DerivedParameter name="rec_speed_dt" expression="1.0f / global_speed / (dt)"/>
+        <DerivedParameter name="nsig" expression="sqrt(dt) * sqrt(2.0 * 1e-5)"/>
 
         <Exposure name="V" default="" choices="sin(V)"/>
 
         <Dynamics>
+            <!-- Use PI to select the PI wrapper (ie Kuramoto) -->
             <StateVariable name="V" default="-2, 1" boundaries="PI"/>
 
             <TimeDerivative name="V" expression="omega + c_0"/>
@@ -29,16 +29,18 @@
 
         <Constant name="a" dimension="" default="1" description="Rescales the connection strength."/>
 
-<!--        variables for coupling function-->
+<!--        variables for pre synaptic function-->
         <Parameter name="V_j" dimension='0'/>
 
+<!--        variables for post synaptic function-->
+<!--        <Requirement name="wij" dimension=''/>-->
         <Dynamics>
             <DerivedVariable name="pre" expression="sin(V_j - V)" description = "pre synaptic function for coupling activity"/>
             <DerivedVariable name="post" expression="a" description = "post synaptic function for coupling activity"/>
         </Dynamics>
 
-        <!-- Handle local coupling result, full expression is 'name' *= 'value'. Name option is hardcoded -->
-        <DerivedParameter name="c_0" expression="global_coupling * rec_n" value="None"/>
+        <!-- Handle local coupling result, full expression is c_0 *= 'value'. Name option is hardcoded -->
+        <DerivedParameter name="c_0" expression="global_coupling * rec_n"/>
 
     </ComponentType>
 

@@ -1,7 +1,7 @@
 <Lems
       description="A number of ComponentTypes for rate based/population models.
                     Base type of any cell/population which has a (dimensionless) rate _R.
-                    Generic nonlinear 2-D (phase plane) oscillator.">
+                    Reduced Wong Wang model.">
 
     <ComponentType name="Rwongwang"
                    description="Rate based 2D oscillator for TVB">
@@ -84,7 +84,6 @@
     </ComponentType>
 
     <ComponentType name="noise" description="on">
-
     </ComponentType>
 
 </Lems>

@@ -1,7 +1,4 @@
-<Lems
-      description="A number of ComponentTypes for rate based/population models.
-                    Base type of any cell/population which has a (dimensionless) rate _R.
-                    Generic nonlinear 2-D (phase plane) oscillator.">
+<Lems>
 
     <ComponentType name="Oscillator"
                    description="Rate based 2D oscillator for TVB"
@@ -26,10 +23,10 @@ It scales both I and the long range coupling term.."/>
         <Parameter name="global_speed" dimension='float'/>
         <Parameter name="global_coupling" dimension='float'/>
 
-        <DerivedParameter name="rec_n" expression="1 / n_node" value="None"/>
-        <DerivedParameter name="rec_speed_dt" expression="1.0f / global_speed / (dt)" value="None"/>
-        <DerivedParameter name="nsig" expression="sqrt(dt) * sqrt(2.0 * 1e-3)" value="None"/>
-        <DerivedParameter name="lc" expression="0.0" value="None"/>
+        <DerivedParameter name="rec_n" expression="1 / n_node"/>
+        <DerivedParameter name="rec_speed_dt" expression="1.0f / global_speed / (dt)"/>
+        <DerivedParameter name="nsig" expression="sqrt(dt) * sqrt(2.0 * 1e-3)"/>
+        <DerivedParameter name="lc" expression="0.0"/>
 
         <Dynamics>
             <StateVariable name="V" default="" boundaries="-2.0, 4.0"/>
@@ -47,8 +44,6 @@ It scales both I and the long range coupling term.."/>
 
     <ComponentType name="coupling_function">
 
-<!--        Added function for pre and post synaptic activity. Fixed the power being **, however no parse checks for it-->
-
         <Constant name="c_a" domain="lo=0.0, hi=10., step=0.1" default="1" description="Rescales the connection strength."/>
 
 <!--        variables for pre synaptic function-->
@@ -61,14 +56,12 @@ It scales both I and the long range coupling term.."/>
             <DerivedVariable name="post" expression="c_a" description = "post synaptic function for coupling activity"/>
         </Dynamics>
 
-        <!-- Handle local coupling result, full expression is c_0 *= 'value'. Name option is hardcoded -->
-        <DerivedParameter name="c_0" expression="global_coupling" value="None"/>
+        <!-- Handle local coupling result, full expression is 'name' *= 'expression'-->
+        <DerivedParameter name="c_0" expression="global_coupling"/>
 
     </ComponentType>
 
     <ComponentType name="noise" description="on">
-
     </ComponentType>
-
 
 </Lems>

@@ -63,7 +63,7 @@ __global__ void Kuramoto(
     // derived parameters
     const float rec_n = 1.0f / n_node;
     const float rec_speed_dt = 1.0f / global_speed / (dt);
-    const float nsig = sqrt(dt) * sqrt(2.0 * 1e-3);
+    const float nsig = sqrt(dt) * sqrt(2.0 * 1e-5);
 
 
 
@@ -74,7 +74,12 @@ __global__ void Kuramoto(
 
     //***// This is only initialization of the observable
     for (unsigned int i_node = 0; i_node < n_node; i_node++)
+    {
         tavg(i_node) = 0.0f;
+        if (i_step == 0){
+            state(i_step, i_node) = 0.001;
+        }
+    }
 
     //***// This is the loop over time, should stay always the same
     for (unsigned int t = i_step; t < (i_step + n_step); t++)

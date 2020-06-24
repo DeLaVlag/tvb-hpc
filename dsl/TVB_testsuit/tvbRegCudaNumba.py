@@ -34,9 +34,9 @@ current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfra
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 
-sys.path.append("{}{}".format(parent_dir, '/NeuroML/'))
+# sys.path.append("{}{}".format(parent_dir, '/NeuroML/'))
 
-np.set_printoptions(threshold=sys.maxsize)
+# np.set_printoptions(threshold=sys.maxsize)
 
 # for numexpr package missing and no permissions to install:
 # clone package, copy to hpc, build with $ python setup.py build, copy numexpr folder from build/lib.linux-ppc64le-3.6 to project root
@@ -52,18 +52,18 @@ rgn.seed(79)
 class TVB_test:
 
 	def __init__(self):
+		self.args = self.parse_args()
 		self.sim_length = self.args.n_time # 400
 		self.g = np.array([1.0])
 		self.s = np.array([1.0])
 		self.dt = 0.1
 		self.period = 10.0
-		self.omega = 60.0 * 2.0 * math.pi / 1e3
+		self.omega = 60.0 #* 2.0 * math.pi / 1e3
 		(self.connectivity, self.coupling) = self.tvb_connectivity(self.s, self.g, self.dt)
 		self.integrator = integrators.EulerDeterministic(dt=self.dt)
 		self.weights = self.SC = self.connectivity.weights
 		self.lengths = self.connectivity.tract_lengths
 		self.n_nodes = self.weights.shape[0]
-		self.args = self.parse_args()
 		self.tavg_period = 10.0
 		self.nstep = self.args.n_time  # 4s
 		self.n_inner_steps = int(self.tavg_period / self.dt)
@@ -78,7 +78,7 @@ class TVB_test:
 		self.states = 1
 
 	def tvb_connectivity(self, speed, global_coupling, dt=0.1):
-		white_matter = connectivity.Connectivity.from_file(source_file="data/connectivity_68.zip")
+		white_matter = connectivity.Connectivity.from_file(source_file="connectivity_68.zip")
 		white_matter.configure()
 		white_matter.speed = np.array([speed])
 		white_matter_coupling = coupling.Linear(a=global_coupling)
@@ -104,24 +104,26 @@ class TVB_test:
 		populations.omega = np.array([self.omega])
 		return populations
 
-	def createFolder(directory):
+	def createFolder(self, directory):
 		try:
 			if not directory.exists():
 				directory.mkdir()
 		except OSError:
 			print('Error: Creating directory. ' + directory)
 
-	def generate_output(results, params_matrix, n_work_items):
+
+	def generate_output(self, results, params_matrix, n_work_items):
 		# Output
 		sbj = '0/'
-		npath1 = Path("/home/sandra/Documents/Thanos/TVB_MPI/")
+		npath1 = Path("/p/project/type1_1/vandervlag1/mpi_all/tvb-hpc/dsl/TVB_testsuit")
+		# data_folder = Path(os.path.join((os.path.dirname(os.path.abspath(__file__))), '0/'))
 		data_folder = npath1 / sbj
 		print(data_folder)
-		createFolder(data_folder)
+		self.createFolder(data_folder)
 		pathsaveFC = data_folder / "FC/"
-		createFolder(pathsaveFC)
+		self.createFolder(pathsaveFC)
 		pathsavetavg = data_folder / "TAVG/"
-		createFolder(pathsavetavg)
+		self.createFolder(pathsavetavg)
 		print(pathsavetavg)
 		print(pathsaveFC)
 		# createFolder(data_folder / "BOLD/")
@@ -170,7 +172,7 @@ class TVB_test:
 							choices=['Rwongwang', 'Kuramoto', 'Epileptor', 'Oscillator', \
 									 'Oscillatorref', 'Kuramotoref', 'Rwongwangref'],
 							help="neural mass model to be used during the simulation",
-							default='Oscillator'
+							default='Kuramoto'
 							)
 		parser.add_argument('--lineinfo', default=True, action='store_true')
 
@@ -194,7 +196,8 @@ class TVB_test:
 	def setup_params(self, nc, ns):  # {{{
 		# the correctness checks at the end of the simulation
 		# are matched to these parameter values, for the moment
-		couplings = np.logspace(1.6, 3.0, nc)
+		# couplings = np.logspace(1.6, 3.0, nc)
+		couplings = np.logspace(0, 1.0, nc)
 		speeds = np.logspace(0.0, 2.0, ns)
 		return couplings, speeds  # }}}
 
@@ -262,7 +265,7 @@ class TVB_test:
 
 		if wi >= total_ranks:
 			for i in range(0, wi_per_rank):
-				speed, coupl = params[my_rank * wi_per_rank + i]
+				speed, coupl = self.params[my_rank * wi_per_rank + i]
 				# tvbRun = regularRun(n_time, coupl, speed, dt, period)
 				# trace[i] = np.squeeze(tvbRun.simulate_python())
 
@@ -271,7 +274,7 @@ class TVB_test:
 
 				print("Processed: " + str(i + my_rank * wi_per_rank))
 		else:
-			speed, coupl = params[my_rank + total_ranks * wi_per_rank]
+			speed, coupl = self.params[my_rank + total_ranks * wi_per_rank]
 			if my_rank <= wi:
 				# tvbRun = regularRun(n_time, coupl, speed, dt, period)
 				# trace[my_rank + total_ranks * wi_per_rank] = tvbRun.simulate_python()
@@ -353,6 +356,22 @@ class TVB_test:
 
 		return tavg_data
 
+	def set_CUDAmodel_dir(self):
+		self.args.filename = os.path.join((os.path.dirname(os.path.abspath(__file__))), os.pardir, 'dsl_cuda', 'CUDAmodels',
+								 self.args.model.lower() + '.c')
+
+	def set_states(self):
+		if 'kuramoto' in self.args.model.lower():
+			self.states = 1
+		elif 'oscillator' in self.args.model.lower():
+			self.states = 2
+		elif 'wongwang' in self.args.model.lower():
+			self.states = 2
+		elif 'montbrio' in self.args.model.lower():
+			self.states = 2
+		elif 'epileptor' in self.args.model.lower():
+			self.states = 6
+
 	def startsim(self, pop, tmpld):
 
 		tic = time.time()
@@ -386,22 +405,14 @@ class TVB_test:
 
 		benchwhat = self.args.bench
 
-		self.args.filename = "{}{}{}{}".format(parent_dir, '/NeuroML/CUDAmodels/', self.args.model.lower(), '.c')
+		self.set_CUDAmodel_dir()
 
-		if ('kuramoto' in self.args.model.lower()):
-			self.states = 1
-		elif 'oscillator' in self.args.model.lower():
-			self.states = 2
-		elif 'wongwang' in self.args.model.lower():
-			self.states = 2
-		elif 'montbrio' in self.args.model.lower():
-			self.states = 2
-		elif 'epileptor' in self.args.model.lower():
-			self.states = 6
+		self.set_states()
 		logger.info('number of states %d', self.states)
 
 		# mpi stuff
-		wi = nc * ns
+		wi = self.nc * self.ns
+		# wi = 1
 		wi_per_rank = 1
 		if wi >= total_ranks:
 			wi_per_rank = int(wi / total_ranks)
@@ -409,6 +420,7 @@ class TVB_test:
 		# params = [x for x in itertools.product(speeds, couplings)]
 
 		if my_rank == 0:
+			print("World size:", total_ranks)
 			print("Work items: " + str(wi))
 			print("Work items per rank: " + str(wi_per_rank))
 			print("Extra: " + str(extra))
@@ -450,7 +462,7 @@ class TVB_test:
 			logger.info('filename %s', self.args.filename)
 			logger.info('model %s', self.args.model)
 			toc = time.time()
-			print("Finished python simulation successfully in: {}".format(toc - tac))
+			# print("Finished python simulation successfully in: {}".format(toc - tac))
 			elapsed = toc - tic
 			# inform about time
 			logger.info('elapsed time %0.3f', elapsed)

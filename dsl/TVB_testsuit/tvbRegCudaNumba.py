@@ -251,7 +251,6 @@ class TVB_test:
 		logger.info('result OK')
 
 	def regular(self, logger, wi, wi_per_rank, trace):
-		logger.info('start regular TVB run')
 
 		# Initialize Model
 		model = self.tvb_python_model()
@@ -372,13 +371,14 @@ class TVB_test:
 		elif 'epileptor' in self.args.model.lower():
 			self.states = 6
 
-	def startsim(self, pop, tmpld):
+	def startsim(self):
 
-		tic = time.time()
+
 		logging.basicConfig(level=logging.DEBUG if self.args.verbose else logging.INFO)
 		logger = logging.getLogger('[tvbBench.py]')
 
 		if my_rank == 0:
+			tic = time.time()
 			# TODO buf_len per speed/block
 			logger.info('dt %f', self.dt)
 			logger.info('nstep %d', self.nstep)
@@ -400,15 +400,12 @@ class TVB_test:
 			# buf_len = 2**np.argwhere(2**np.r_[:30] > buf_len_)[0][0]  # use next power of 2
 			logger.info('real buf_len %d, using power of 2 %d', self.buf_len_, self.buf_len)
 
-		tac = time.time()
-		logger.info("Setup in: {}".format(tac - tic))
-
-		benchwhat = self.args.bench
-
 		self.set_CUDAmodel_dir()
 
 		self.set_states()
-		logger.info('number of states %d', self.states)
+
+		if my_rank == 0:
+			logger.info('number of states %d', self.states)
 
 		# mpi stuff
 		wi = self.nc * self.ns
@@ -419,27 +416,25 @@ class TVB_test:
 		extra = wi % total_ranks
 		# params = [x for x in itertools.product(speeds, couplings)]
 
-		if my_rank == 0:
-			print("World size:", total_ranks)
-			print("Work items: " + str(wi))
-			print("Work items per rank: " + str(wi_per_rank))
-			print("Extra: " + str(extra))
-
 		my_trace = [None for i in range(wi_per_rank)]
-		# TIME
-		if my_rank == 0:
-			t0 = time.time()
-		# run_all(wi, wi_per_rank, extra, my_trace, speeds, couplings, nnode, args.n_time, dt, period, params)
 
-			# locals()[benchwhat]()
-			logger.info('benchwhat: %s', benchwhat)
-			switcher = {
-				'regular': self.regular,
-				'numba': self.numba,
-				'numbac': self.numbac,
-				'cuda': self.cuda
-			}
-			run_rnc = switcher.get(benchwhat, 'invalid bench choice')
+		benchwhat = self.args.bench
+		switcher = {
+			'regular': self.regular,
+			'numba': self.numba,
+			'numbac': self.numbac,
+			'cuda': self.cuda
+		}
+		run_rnc = switcher.get(benchwhat, 'invalid bench choice')
+
+		if my_rank == 0:
+			logger.info("World size: %d", total_ranks)
+			logger.info("Work items: %d", wi)
+			logger.info("Work items per rank: %d", wi_per_rank)
+			logger.info("Extra: " + str(extra))
+			tac = time.time()
+			logger.info("Setup in: {}".format(tac - tic))
+			logger.info('Start TVB: %s', benchwhat)
 
 		run_rnc(logger, wi, wi_per_rank, my_trace)
 
@@ -452,14 +447,14 @@ class TVB_test:
 				for j in i:
 					trace.append(j)
 
-			t1 = time.time()
-			total = t1 - t0
-			print("Simulation time: " + str(total) + "\n")
+			# t1 = time.time()
+			# total = t1 - t0
+			# print("Simulation time: " + str(total) + "\n")
 			self.generate_output({'tavg': trace}, self.params, wi)
 		comm.Barrier()
 
 		if my_rank == 0:
-			logger.info('filename %s', self.args.filename)
+			# logger.info('filename %s', self.args.filename)
 			logger.info('model %s', self.args.model)
 			toc = time.time()
 			# print("Finished python simulation successfully in: {}".format(toc - tac))
@@ -472,4 +467,4 @@ class TVB_test:
 
 if __name__ == '__main__':
 	zelf = TVB_test()
-	zelf.startsim('Kuramoto', tmpld=0)
+	zelf.startsim()

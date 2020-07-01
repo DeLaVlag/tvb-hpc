@@ -76,8 +76,8 @@ class CudaRun:
 			data[name] = np.zeros(shape + base_shape, 'f')
 
 		gpu_data = self.make_gpu_data(data)#{{{
-		logger.info('history shape %r', data['state'].shape)
-		logger.info('on device mem: %.3f MiB' % (self.nbytes(data) / 1024 / 1024, ))#}}}
+		# logger.info('history shape %r', data['state'].shape)
+		# logger.info('on device mem: %.3f MiB' % (self.nbytes(data) / 1024 / 1024, ))#}}}
 
 		# setup CUDA stuff#{{{
 		step_fn = self.make_kernel(
@@ -94,12 +94,12 @@ class CudaRun:
 
 		# setup simulation#{{{
 		tic = time.time()
-		logger.info('nstep %i', nstep)
+		# logger.info('nstep %i', nstep)
 		streams = [drv.Stream() for i in range(32)]
 		events = [drv.Event() for i in range(32)]
 		tavg_unpinned = []
 		tavg = drv.pagelocked_zeros(data['tavg'].shape, dtype=np.float32)
-		logger.info('data[tavg].shape %s', data['tavg'].shape)
+		# logger.info('data[tavg].shape %s', data['tavg'].shape)
 		#}}}
 
 		# adjust gridDim to keep block size <= 1024 {{{
@@ -111,14 +111,14 @@ class CudaRun:
 			n_coupling_blocks = 1
 		final_block_dim = n_coupling_per_block, args.node_threads, 1
 		final_grid_dim = speeds.size, n_coupling_blocks
-		logger.info('final block dim %r', final_block_dim)
-		logger.info('final grid dim %r', final_grid_dim)
+		# logger.info('final block dim %r', final_block_dim)
+		# logger.info('final grid dim %r', final_grid_dim)
 		assert n_coupling_per_block * n_coupling_blocks == args.n_coupling #}}}
-		logger.info('gpu_data[lengts] %s', gpu_data['lengths'].shape)
-		logger.info('nnodes %r', n_nodes)
+		# logger.info('gpu_data[lengts] %s', gpu_data['lengths'].shape)
+		# logger.info('nnodes %r', n_nodes)
 
 		# run simulation#{{{
-		logger.info('submitting work')
+		# logger.info('submitting work')
 		for i in range(nstep):
 
 			# event = events[i % 32]
@@ -139,7 +139,7 @@ class CudaRun:
 				tavg,
 				gpu_data['tavg'].ptr)
 
-		logger.info('kernel finish..')
+		# logger.info('kernel finish..')
 		# release pinned memory
 		tavg = np.array(tavg_unpinned)
 		return tavg

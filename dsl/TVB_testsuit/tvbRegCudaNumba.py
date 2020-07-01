@@ -264,16 +264,16 @@ class TVB_test:
 
 		if wi >= total_ranks:
 			for i in range(0, wi_per_rank):
-				speed, coupl = self.params[my_rank * wi_per_rank + i]
+				self.speed, self.coupl = self.params[my_rank * wi_per_rank + i]
 				# tvbRun = regularRun(n_time, coupl, speed, dt, period)
 				# trace[i] = np.squeeze(tvbRun.simulate_python())
 
 				(_, tavg_data) = sim.run(simulation_length=self.sim_length)[0]
 				trace[i] = np.squeeze(tavg_data)
 
-				print("Processed: " + str(i + my_rank * wi_per_rank))
+				# print("Processed: " + str(i + my_rank * wi_per_rank))
 		else:
-			speed, coupl = self.params[my_rank + total_ranks * wi_per_rank]
+			self.speed, self.coupl = self.params[my_rank + total_ranks * wi_per_rank]
 			if my_rank <= wi:
 				# tvbRun = regularRun(n_time, coupl, speed, dt, period)
 				# trace[my_rank + total_ranks * wi_per_rank] = tvbRun.simulate_python()
@@ -351,7 +351,7 @@ class TVB_test:
 										   self.n_inner_steps, self.buf_len, self.states, self.dt, self.min_speed)
 		# logger.info('tavg_data %f', tavg_data)
 
-		self.check_results(self.n_nodes, self.n_work_items, tavg_data, self.weights, self.speeds, self.couplings, logger, self.args)
+		# self.check_results(self.n_nodes, self.n_work_items, tavg_data, self.weights, self.speeds, self.couplings, logger, self.args)
 
 		return tavg_data
 
@@ -427,42 +427,45 @@ class TVB_test:
 		}
 		run_rnc = switcher.get(benchwhat, 'invalid bench choice')
 
-		if my_rank == 0:
-			logger.info("World size: %d", total_ranks)
-			logger.info("Work items: %d", wi)
-			logger.info("Work items per rank: %d", wi_per_rank)
-			logger.info("Extra: " + str(extra))
-			tac = time.time()
-			logger.info("Setup in: {}".format(tac - tic))
-			logger.info('Start TVB: %s', benchwhat)
+		# if my_rank == 0:
+		# 	logger.info("World size: %d", total_ranks)
+		# 	logger.info("Work items: %d", wi)
+		# 	logger.info("Work items per rank: %d", wi_per_rank)
+		# 	logger.info("Extra: %d", extra)
+		# 	tac = time.time()
+		# 	logger.info("Setup in: {}".format(tac - tic))
+		# 	logger.info('Start TVB: %s', benchwhat)
 
 		run_rnc(logger, wi, wi_per_rank, my_trace)
 
-		comm.Barrier()
-		my_trace_g = np.array(comm.gather(my_trace, root=0))
+		# if benchwhat == 'regular':
+		# 	comm.Barrier()
+		# 	my_trace_g = np.array(comm.gather(my_trace, root=0))
+		#
+		# if my_rank == 0 and benchwhat == 'regular':
+		# 	trace = []
+		# 	for i in my_trace_g:
+		# 		for j in i:
+		# 			trace.append(j)
+		#
+		# 	# t1 = time.time()
+		# 	# total = t1 - t0
+		# 	# print("Simulation time: " + str(total) + "\n")
+		# 	self.generate_output({'tavg': trace}, self.params, wi)
 
-		if my_rank == 0:
-			trace = []
-			for i in my_trace_g:
-				for j in i:
-					trace.append(j)
-
-			# t1 = time.time()
-			# total = t1 - t0
-			# print("Simulation time: " + str(total) + "\n")
-			self.generate_output({'tavg': trace}, self.params, wi)
-		comm.Barrier()
-
-		if my_rank == 0:
-			# logger.info('filename %s', self.args.filename)
-			logger.info('model %s', self.args.model)
-			toc = time.time()
-			# print("Finished python simulation successfully in: {}".format(toc - tac))
-			elapsed = toc - tic
-			# inform about time
-			logger.info('elapsed time %0.3f', elapsed)
-			logger.info('%0.3f M step/s', 1e-6 * self.nstep * self.n_inner_steps * self.n_work_items / elapsed)
-			logger.info('finished')
+		# if benchwhat == 'regular':
+		# 	comm.Barrier()
+		#
+		# if my_rank == 0:
+		# 	# logger.info('filename %s', self.args.filename)
+		# 	logger.info('model %s', self.args.model)
+		toc = time.time()
+		# print("Finished python simulation successfully in: {}".format(toc - tac))
+		elapsed = toc - tic
+		# inform about time
+		logger.info('elapsed time %0.3f', elapsed)
+		logger.info('%0.3f M step/s', 1e-6 * self.nstep * self.n_inner_steps * self.n_work_items / elapsed)
+		logger.info('finished')
 
 
 if __name__ == '__main__':
